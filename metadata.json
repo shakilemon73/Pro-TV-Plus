@@ -1,0 +1,6 @@
+{
+  "name": "Pro Tv Plus",
+  "description": "Stream over 500+ premium live channels, sports, and news in HD on any device with direct download capabilities.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
