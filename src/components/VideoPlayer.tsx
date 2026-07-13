@@ -32,6 +32,12 @@ export default function VideoPlayer({ channel, onRefresh }: VideoPlayerProps) {
   const isStreamHttp = channel?.streamUrl?.startsWith('http://');
   const hasMixedContentRisk = isHttps && isStreamHttp;
 
+  const [useProxy, setUseProxy] = useState(false);
+
+  useEffect(() => {
+    setUseProxy(hasMixedContentRisk);
+  }, [channel?.id, hasMixedContentRisk]);
+
   // Hls stream loader effect
   useEffect(() => {
     const video = videoRef.current;
@@ -74,7 +80,7 @@ export default function VideoPlayer({ channel, onRefresh }: VideoPlayerProps) {
         });
     };
 
-    const streamSource = hasMixedContentRisk 
+    const streamSource = useProxy 
       ? `/api/proxy?url=${encodeURIComponent(channel.streamUrl)}`
       : channel.streamUrl;
 
@@ -114,6 +120,10 @@ export default function VideoPlayer({ channel, onRefresh }: VideoPlayerProps) {
                 networkErrorRetryCount++;
                 setStatusMessage(`Network error. Retrying connection (${networkErrorRetryCount}/3)...`);
                 hls.startLoad();
+              } else if (useProxy) {
+                console.warn('Proxy request failed. Bypassing proxy and trying direct connection...');
+                setStatusMessage('Proxy failed (possibly blocked port). Trying direct stream...');
+                setUseProxy(false);
               } else {
                 setPlaybackError('Live stream network error or server connection refused. Make sure you are not behind a firewall or restricted network.');
                 setStreamActive(false);
@@ -125,9 +135,14 @@ export default function VideoPlayer({ channel, onRefresh }: VideoPlayerProps) {
               hls.recoverMediaError();
               break;
             default:
-              setPlaybackError('Live server connection refused, stream offline, or blocked by browser security (HTTP stream on HTTPS page).');
-              setStreamActive(false);
-              setIsLoading(false);
+              if (useProxy) {
+                console.warn('Proxy request failed with other error. Bypassing proxy and trying direct connection...');
+                setUseProxy(false);
+              } else {
+                setPlaybackError('Live server connection refused, stream offline, or blocked by browser security (HTTP stream on HTTPS page).');
+                setStreamActive(false);
+                setIsLoading(false);
+              }
               break;
           }
         } else {
@@ -144,9 +159,14 @@ export default function VideoPlayer({ channel, onRefresh }: VideoPlayerProps) {
 
       video.addEventListener('error', (e) => {
         console.error('Native video error:', e);
-        setPlaybackError('Stream failed to load in native player.');
-        setStreamActive(false);
-        setIsLoading(false);
+        if (useProxy) {
+          console.warn('Native proxy load failed, attempting direct bypass...');
+          setUseProxy(false);
+        } else {
+          setPlaybackError('Stream failed to load in native player.');
+          setStreamActive(false);
+          setIsLoading(false);
+        }
       });
     } else {
       // Default HTML5 video fallback
@@ -155,9 +175,14 @@ export default function VideoPlayer({ channel, onRefresh }: VideoPlayerProps) {
         playVideo();
       });
       video.addEventListener('error', () => {
-        setPlaybackError('Direct video stream playback not supported in this browser.');
-        setStreamActive(false);
-        setIsLoading(false);
+        if (useProxy) {
+          console.warn('Fallback proxy load failed, attempting direct bypass...');
+          setUseProxy(false);
+        } else {
+          setPlaybackError('Direct video stream playback not supported in this browser.');
+          setStreamActive(false);
+          setIsLoading(false);
+        }
       });
     }
 
@@ -167,7 +192,7 @@ export default function VideoPlayer({ channel, onRefresh }: VideoPlayerProps) {
         hlsRef.current = null;
       }
     };
-  }, [channel?.streamUrl, channel?.id]);
+  }, [channel?.streamUrl, channel?.id, useProxy]);
 
   // Sync play/pause control on state change
   useEffect(() => {
@@ -509,6 +534,24 @@ export default function VideoPlayer({ channel, onRefresh }: VideoPlayerProps) {
 
         {/* Right Side Quality Adaptations, refresh & scale */}
         <div className="flex items-center gap-2 w-full md:w-auto justify-end">
+          {hasMixedContentRisk && (
+            <button
+              onClick={() => {
+                triggerHaptic(HAPTIC_PATTERNS.softClick);
+                setUseProxy(!useProxy);
+              }}
+              className={`px-2.5 py-1.5 text-[10px] font-mono font-bold border rounded-lg flex items-center gap-1.5 transition-all ${
+                useProxy 
+                  ? 'bg-primary-red/20 border-primary-red/50 text-primary-red hover:bg-primary-red/30'
+                  : 'bg-neutral-950 border-neutral-800 text-neutral-400 hover:text-white hover:border-neutral-700'
+              }`}
+              title={useProxy ? 'Proxy enabled. Click to bypass proxy and connect directly.' : 'Direct playback. Click to enable proxy server bypass.'}
+            >
+              <Server size={12} className={useProxy ? 'animate-pulse' : ''} />
+              {useProxy ? 'Proxy On' : 'Direct Play'}
+            </button>
+          )}
+
           <div className="relative">
             <button
               onClick={() => setShowQualityMenu(!showQualityMenu)}

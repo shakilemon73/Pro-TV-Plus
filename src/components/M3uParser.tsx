@@ -124,7 +124,7 @@ export default function M3uParser({ onSelectChannel }: M3uParserProps) {
             <div className="p-1 rounded-lg bg-[#00a2fd]/10 text-[#00a2fd]">
               <Upload size={18} />
             </div>
-            <h3 className="text-xl font-bold font-display text-white">Custom M3U IPTV Playlist Builder</h3>
+            <h3 className="text-lg sm:text-xl font-bold font-display text-white">Custom M3U IPTV Playlist Builder</h3>
           </div>
           <p className="text-sm text-neutral-400 font-sans max-w-xl">
             Import M3U links or copy-paste playlist text to test custom channel streams on Pro Tv Plus.
@@ -195,12 +195,12 @@ export default function M3uParser({ onSelectChannel }: M3uParserProps) {
               <h4 className="text-sm font-bold text-white uppercase tracking-wider font-display">
                 Parsed Channels
               </h4>
-              <div className="flex flex-wrap gap-1">
+              <div className="flex overflow-x-auto max-w-full gap-1 py-1 whitespace-nowrap scrollbar-thin select-none">
                 {groups.map(grp => (
                   <button
                     key={grp}
                     onClick={() => setActiveGroup(grp)}
-                    className={`px-3 py-1 rounded-full text-[10px] font-mono font-bold uppercase transition-all ${
+                    className={`px-3 py-1 rounded-full text-[10px] font-mono font-bold uppercase transition-all shrink-0 whitespace-nowrap ${
                       activeGroup === grp
                         ? 'bg-[#00a2fd] text-white'
                         : 'bg-neutral-900 text-neutral-400 hover:text-white hover:bg-neutral-800'

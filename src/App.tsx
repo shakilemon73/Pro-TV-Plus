@@ -95,6 +95,21 @@ export default function App() {
       e.preventDefault();
     }
     triggerHaptic(HAPTIC_PATTERNS.heavyConfirm);
+
+    const downloadUrl = '/api/download-apk';
+
+    // Trigger the real browser file download immediately to align with direct user click gesture
+    try {
+      const link = document.createElement('a');
+      link.href = downloadUrl;
+      link.setAttribute('download', 'app-release.apk');
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+    } catch (err) {
+      window.open(downloadUrl, '_blank');
+    }
+
     setDownloadPercent(0);
     setDownloadStep('Initializing secure background connection to GitHub repository...');
     setDownloadOverlayOpen(true);
@@ -106,20 +121,8 @@ export default function App() {
         currentVal = 100;
         clearInterval(interval);
         setDownloadPercent(100);
-        setDownloadStep('Package assembled successfully! Triggering automatic browser save...');
+        setDownloadStep('Package downloaded successfully!');
         triggerHaptic(HAPTIC_PATTERNS.successBlast);
-        
-        // Execute real, reliable browser download of the APK file
-        try {
-          const link = document.createElement('a');
-          link.href = APK_DOWNLOAD_URL;
-          link.setAttribute('download', 'app-release.apk');
-          document.body.appendChild(link);
-          link.click();
-          document.body.removeChild(link);
-        } catch (err) {
-          window.location.assign(APK_DOWNLOAD_URL);
-        }
         
         // Keep success message visible for 2 seconds then fade out
         setTimeout(() => {
@@ -604,7 +607,7 @@ export default function App() {
         <section id="player-section" className="space-y-6 scroll-mt-24">
           <div className="border-l-4 border-primary-red pl-4 flex items-center justify-between">
             <div>
-              <h2 className="text-2xl font-black uppercase tracking-tight text-white font-display">
+              <h2 className="text-xl sm:text-2xl font-black uppercase tracking-tight text-white font-display">
                 Live TV Streaming Console
               </h2>
               <p className="text-xs text-neutral-400 mt-1 font-sans">
@@ -873,8 +876,8 @@ export default function App() {
                 </p>
                 <div className="flex gap-2 justify-center">
                   <a
-                    href={APK_DOWNLOAD_URL}
-                    download="Pro-Tv-Plus-v2.apk"
+                    href="/api/download-apk"
+                    download="app-release.apk"
                     className="text-[11px] font-bold text-primary-red hover:text-red-400 transition-all cursor-pointer underline"
                   >
                     Click here if download didn't start

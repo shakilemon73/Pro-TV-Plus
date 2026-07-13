@@ -1,12 +1,41 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Download, Smartphone, Tv, Laptop, ChevronDown, CheckCircle, SmartphoneIcon, ShieldCheck, Heart, AlertCircle, Share2 } from 'lucide-react';
 import { APK_DOWNLOAD_URL } from '../data';
+
+interface AppUpdateInfo {
+  versionCode: number;
+  versionName: string;
+  apkUrl: string;
+  changelog: string;
+}
 
 export default function ApkSection({ onDownloadTrigger }: { onDownloadTrigger?: () => void }) {
   const [downloading, setDownloading] = useState(false);
   const [progress, setProgress] = useState(0);
   const [activeStepTab, setActiveStepTab] = useState<'mobile' | 'tv' | 'pc'>('mobile');
   const [copiedLink, setCopiedLink] = useState(false);
+  const [updateInfo, setUpdateInfo] = useState<AppUpdateInfo | null>(null);
+
+  useEffect(() => {
+    fetch('/api/app-update')
+      .then(res => {
+        if (!res.ok) {
+          throw new Error(`Server returned status ${res.status}`);
+        }
+        return res.json();
+      })
+      .then(data => {
+        if (data && data.versionName) {
+          setUpdateInfo(data);
+        }
+      })
+      .catch(err => {
+        console.error('Failed to fetch background update JSON:', err);
+      });
+  }, []);
+
+  const isAndroid = typeof navigator !== 'undefined' && /Android/i.test(navigator.userAgent);
+  const activeApkUrl = updateInfo?.apkUrl || APK_DOWNLOAD_URL;
 
   const triggerDownload = (e: React.MouseEvent) => {
     e.preventDefault();
@@ -18,16 +47,17 @@ export default function ApkSection({ onDownloadTrigger }: { onDownloadTrigger?: 
     setDownloading(true);
     setProgress(0);
     
-    // Execute real browser download trigger
+    // Execute real browser download trigger pointing to dynamic JSON apkUrl
     try {
       const link = document.createElement('a');
-      link.href = APK_DOWNLOAD_URL;
+      link.href = activeApkUrl;
       link.setAttribute('download', 'app-release.apk');
+      link.target = '_blank';
       document.body.appendChild(link);
       link.click();
       document.body.removeChild(link);
     } catch (err) {
-      window.location.assign(APK_DOWNLOAD_URL);
+      window.open(activeApkUrl, '_blank');
     }
     
     const interval = setInterval(() => {
@@ -44,7 +74,7 @@ export default function ApkSection({ onDownloadTrigger }: { onDownloadTrigger?: 
   };
 
   const copyShareLink = () => {
-    navigator.clipboard.writeText(APK_DOWNLOAD_URL);
+    navigator.clipboard.writeText(activeApkUrl);
     setCopiedLink(true);
     setTimeout(() => setCopiedLink(false), 2000);
   };
@@ -108,15 +138,15 @@ export default function ApkSection({ onDownloadTrigger }: { onDownloadTrigger?: 
           {/* Download triggers */}
           <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-4 pt-3">
             <a
-              href={APK_DOWNLOAD_URL}
+              href={activeApkUrl}
               onClick={triggerDownload}
-              download="Pro-Tv-Plus-v2.apk"
+              download="app-release.apk"
               target="_blank"
               rel="noopener noreferrer"
               className="px-8 py-4 rounded-xl bg-primary-red hover:bg-primary-red/90 text-white font-bold text-base transition-all flex items-center justify-center gap-3 shadow-lg shadow-primary-red/20 active:scale-95 text-center cursor-pointer"
             >
               <Download size={20} className={downloading ? "animate-bounce" : ""} />
-              Direct Download APK
+              Download APK {updateInfo ? `v${updateInfo.versionName}` : ''}
             </a>
 
             <button
@@ -128,13 +158,61 @@ export default function ApkSection({ onDownloadTrigger }: { onDownloadTrigger?: 
             </button>
           </div>
 
+          {/* Android Special Unknown App installation Instruction block */}
+          {isAndroid && (
+            <div className="bg-amber-500/10 border border-amber-500/20 text-amber-400 p-4 rounded-xl text-xs space-y-1.5 max-w-lg">
+              <p className="font-bold flex items-center gap-1.5 text-[13px]">
+                <Smartphone size={14} className="animate-pulse text-amber-400" />
+                Enable "Install Unknown Apps" Permission:
+              </p>
+              <p className="text-neutral-300 font-sans leading-relaxed">
+                Android devices require permission to install APK packages directly from web browsers. Before launching, go to <strong>Settings &gt; Apps &gt; Special App Access &gt; Install unknown apps</strong> (or search for it in Settings), select your browser (e.g., Chrome or Firefox), and toggle on <strong>"Allow from this source"</strong>.
+              </p>
+            </div>
+          )}
+
+          {/* Dynamic Version Check & Changelog Block */}
+          {updateInfo && (
+            <div className="bg-[#101015]/90 border border-neutral-800/80 p-4 rounded-xl max-w-lg space-y-3 font-sans">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                  <span className="text-[10px] font-mono bg-green-500/15 text-green-400 px-2 py-0.5 rounded font-bold uppercase tracking-wider">
+                    Latest Version
+                  </span>
+                  <span className="text-sm font-bold text-white font-mono">
+                    v{updateInfo.versionName}
+                  </span>
+                </div>
+                <span className="text-[11px] text-neutral-500 font-mono">
+                  Build Code: {updateInfo.versionCode}
+                </span>
+              </div>
+              
+              <div className="space-y-1.5">
+                <p className="text-xs font-semibold text-neutral-300 uppercase tracking-wider font-display">Changelog & Updates:</p>
+                <div className="text-neutral-400 text-[11px] leading-relaxed space-y-1 bg-neutral-900/60 p-2.5 rounded-lg border border-neutral-800/40 max-h-32 overflow-y-auto scrollbar-thin">
+                  {(updateInfo.changelog || '').split('\n').map((line, i) => {
+                    const cleanLine = line.replace(/^[•\s\-\*]+/, '').trim();
+                    if (!cleanLine) return null;
+                    return (
+                      <p key={i} className="flex items-start gap-1.5">
+                        <span className="text-[#00a2fd] font-bold shrink-0">•</span>
+                        <span>{cleanLine}</span>
+                      </p>
+                    );
+                  })}
+                </div>
+              </div>
+            </div>
+          )}
+
           {/* Download Simulator HUD */}
           {downloading && (
-            <div className="bg-[#0d0d0d] p-4 rounded-xl border border-neutral-800 space-y-2">
+            <div className="bg-[#0d0d0d] p-4 rounded-xl border border-neutral-800 space-y-2 max-w-lg">
               <div className="flex justify-between text-xs font-mono">
                 <span className="text-[#00a2fd] flex items-center gap-1">
                   <span className="w-1.5 h-1.5 bg-green-500 rounded-full animate-ping"></span>
-                  Piping App-release.apk from Local Server...
+                  Piping APK update from Secure CDN...
                 </span>
                 <span className="text-white font-bold">{progress}%</span>
               </div>
@@ -145,7 +223,7 @@ export default function ApkSection({ onDownloadTrigger }: { onDownloadTrigger?: 
                 />
               </div>
               <p className="text-[10px] text-neutral-500 font-mono">
-                Saving as app-release.apk (File size: ~18.4 MB)
+                Saving to device (Estimated size: ~18.4 MB)
               </p>
             </div>
           )}

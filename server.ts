@@ -109,6 +109,69 @@ async function startServer() {
     res.json({ status: 'ok' });
   });
 
+  // App updates JSON server-side proxy cache (5 minutes)
+  let cachedUpdateData: any = null;
+  let lastCacheTime = 0;
+  const CACHE_DURATION_MS = 5 * 60 * 1000; // 5 minutes
+
+  app.get('/api/app-update', async (req, res) => {
+    const now = Date.now();
+    if (cachedUpdateData && (now - lastCacheTime < CACHE_DURATION_MS)) {
+      return res.json(cachedUpdateData);
+    }
+
+    try {
+      const response = await fetch('https://raw.githubusercontent.com/shakilemon73/my-m3u-playlist/main/app-update.json');
+      if (!response.ok) {
+        throw new Error(`GitHub returned status ${response.status}`);
+      }
+      const data = await response.json();
+      cachedUpdateData = data;
+      lastCacheTime = now;
+      return res.json(data);
+    } catch (error: any) {
+      console.error('Failed to fetch app-update.json from GitHub:', error);
+      // Serve stale cache as fallback if available, otherwise return error
+      if (cachedUpdateData) {
+        return res.json(cachedUpdateData);
+      }
+      return res.status(500).json({ 
+        error: 'Failed to fetch update metadata', 
+        message: error.message,
+        // Fallback placeholders
+        versionCode: 100,
+        versionName: '1.0.0',
+        apkUrl: 'https://github.com/shakilemon73/my-m3u-playlist/raw/main/public/app-release.apk',
+        changelog: '• Performance improvements\n• Stability fixes'
+      });
+    }
+  });
+
+  // Proxy download route to prevent cross-origin blocks and trigger native download
+  app.get('/api/download-apk', async (req, res) => {
+    const targetUrl = (req.query.url as string) || (cachedUpdateData?.apkUrl) || 'https://github.com/shakilemon73/my-m3u-playlist/raw/main/public/app-release.apk';
+    
+    try {
+      console.log(`Proxying APK download from: ${targetUrl}`);
+      const response = await fetch(targetUrl);
+      if (!response.ok) {
+        throw new Error(`GitHub returned status ${response.status}`);
+      }
+      
+      const buffer = await response.arrayBuffer();
+      
+      res.setHeader('Content-Type', 'application/vnd.android.package-archive');
+      res.setHeader('Content-Disposition', 'attachment; filename="app-release.apk"');
+      res.setHeader('Content-Length', buffer.byteLength.toString());
+      
+      return res.send(Buffer.from(buffer));
+    } catch (error: any) {
+      console.error('Failed to proxy APK download:', error);
+      // Graceful fallback: redirect user directly to GitHub URL
+      return res.redirect(targetUrl);
+    }
+  });
+
   // Integrate Vite middleware for development
   if (process.env.NODE_ENV !== 'production') {
     const vite = await createViteServer({

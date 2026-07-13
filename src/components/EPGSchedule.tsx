@@ -47,7 +47,7 @@ export default function EPGSchedule({
       <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4 mb-6">
         
         {/* Navigation Tabs */}
-        <div className="flex flex-wrap gap-1 bg-[#09090c] p-1 rounded-xl border border-neutral-800/60 self-start">
+        <div className="flex overflow-x-auto max-w-full gap-1 bg-[#09090c] p-1 rounded-xl border border-neutral-800/60 self-stretch lg:self-start whitespace-nowrap scrollbar-thin select-none">
           {categories.map((cat) => (
             <button
               key={cat}
@@ -55,7 +55,7 @@ export default function EPGSchedule({
                 triggerHaptic(HAPTIC_PATTERNS.softClick);
                 setActiveCategory(cat);
               }}
-              className={`px-4 py-2 rounded-lg text-xs font-bold uppercase transition-all tracking-wider ${
+              className={`px-3.5 py-2 rounded-lg text-[10px] sm:text-xs font-bold uppercase transition-all tracking-wider shrink-0 whitespace-nowrap ${
                 activeCategory === cat
                   ? 'bg-gradient-to-r from-primary-red to-red-600 text-white shadow-md'
                   : 'text-neutral-400 hover:text-white hover:bg-neutral-900/50'
