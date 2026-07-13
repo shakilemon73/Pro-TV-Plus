@@ -3,7 +3,7 @@ export interface Channel {
   name: string;
   logoUrl: string;
   streamUrl: string;
-  category: 'sports' | 'news' | 'bangla' | 'movies' | 'kids';
+  category: string;
   isLive: boolean;
   nowPlaying: string;
   nowPlayingDetails?: string;

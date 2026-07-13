@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { Search, Radio, Play, Flame, Tv, RefreshCw } from 'lucide-react';
 import { Channel } from '../types';
+import { triggerHaptic, HAPTIC_PATTERNS } from '../utils/haptic';
 
 interface EPGScheduleProps {
   channels: Channel[];
@@ -30,7 +31,7 @@ export default function EPGSchedule({
     }
   };
 
-  const categories = ['All', 'Sports', 'Bangla', 'News', 'Movies', 'Kids'];
+  const categories = ['All', 'Sports', 'Bangla', 'Hindi/Urdu', 'News', 'Movies', 'Kids'];
 
   const filteredChannels = channels.filter(channel => {
     const matchesSearch = channel.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
@@ -50,7 +51,10 @@ export default function EPGSchedule({
           {categories.map((cat) => (
             <button
               key={cat}
-              onClick={() => setActiveCategory(cat)}
+              onClick={() => {
+                triggerHaptic(HAPTIC_PATTERNS.softClick);
+                setActiveCategory(cat);
+              }}
               className={`px-4 py-2 rounded-lg text-xs font-bold uppercase transition-all tracking-wider ${
                 activeCategory === cat
                   ? 'bg-gradient-to-r from-primary-red to-red-600 text-white shadow-md'

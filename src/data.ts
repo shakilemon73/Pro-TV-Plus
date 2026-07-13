@@ -2,6 +2,20 @@ import { Channel, FaqItem } from './types';
 
 export const POPULAR_CHANNELS: Channel[] = [
   {
+    id: 't-sports-hd',
+    name: 'T Sports HD',
+    logoUrl: 'https://upload.wikimedia.org/wikipedia/commons/thumb/1/18/T_Sports_Official_Logo.png/512px-T_Sports_Official_Logo.png',
+    streamUrl: 'http://114.130.57.233:8080/LIVE-Sports/video.m3u8?token=SkQuhAXZxgBan1',
+    category: 'sports',
+    isLive: true,
+    nowPlaying: 'FIFA World Cup 2026 Qualifiers',
+    nowPlayingDetails: 'Live stream of FIFA World Cup 2026 matches. Comprehensive broadcast coverage and live professional commentary.',
+    nextPlaying: 'Live EPG Show & World Sports Highlights',
+    nowPlayingProgress: 40,
+    resolution: '1080p HD',
+    bitrate: '5.5 Mbps'
+  },
+  {
     id: 'star-sports',
     name: 'Star Sports',
     logoUrl: 'https://upload.wikimedia.org/wikipedia/commons/thumb/1/1e/Star_Sports_logo.svg/512px-Star_Sports_logo.svg.png',
@@ -140,6 +154,62 @@ export const POPULAR_CHANNELS: Channel[] = [
     nowPlayingProgress: 90,
     resolution: '1080p HD',
     bitrate: '4.7 Mbps'
+  },
+  {
+    id: 'ary-digital',
+    name: 'ARY Digital',
+    logoUrl: 'https://upload.wikimedia.org/wikipedia/commons/thumb/c/cd/ARY_Digital_Logo.svg/512px-ARY_Digital_Logo.svg.png',
+    streamUrl: 'https://test-streams.mux.dev/x36xhg/main.m3u8',
+    category: 'Hindi/Urdu',
+    isLive: true,
+    nowPlaying: 'Jeeto Pakistan League',
+    nowPlayingDetails: 'High-energy game show hosted by Fahad Mustafa with live interactive audience participation.',
+    nextPlaying: 'Bulbulay Comedy Sitcom',
+    nowPlayingProgress: 52,
+    resolution: '1080p HD',
+    bitrate: '4.5 Mbps'
+  },
+  {
+    id: 'hum-tv',
+    name: 'Hum TV',
+    logoUrl: 'https://upload.wikimedia.org/wikipedia/commons/thumb/e/e0/HUM_TV_Logo_2020.svg/512px-HUM_TV_Logo_2020.svg.png',
+    streamUrl: 'https://demo.unified-streaming.com/k8s/features/stable/video/tears-of-steel/tears-of-steel.ism/.m3u8',
+    category: 'Hindi/Urdu',
+    isLive: true,
+    nowPlaying: 'Parizaad Mega Drama',
+    nowPlayingDetails: 'Award-winning emotional drama series detailing the life struggles of Parizaad.',
+    nextPlaying: 'Hum News Highlights',
+    nowPlayingProgress: 35,
+    resolution: '1080p HD',
+    bitrate: '4.0 Mbps'
+  },
+  {
+    id: 'geo-news',
+    name: 'Geo News',
+    logoUrl: 'https://upload.wikimedia.org/wikipedia/commons/thumb/e/e1/Geo_News_logo.svg/512px-Geo_News_logo.svg.png',
+    streamUrl: 'https://playertest.longtailvideo.com/adaptive/art-of-motion/manifest.m3u8',
+    category: 'Hindi/Urdu',
+    isLive: true,
+    nowPlaying: 'Geo Headlines Tonight',
+    nowPlayingDetails: 'In-depth reporting of central news bulletins and political panels.',
+    nextPlaying: 'Capital Talk with Hamid Mir',
+    nowPlayingProgress: 75,
+    resolution: '720p HD',
+    bitrate: '3.0 Mbps'
+  },
+  {
+    id: 'colors-tv',
+    name: 'Colors TV',
+    logoUrl: 'https://upload.wikimedia.org/wikipedia/commons/thumb/6/6f/Colors_TV_logo.svg/512px-Colors_TV_logo.svg.png',
+    streamUrl: 'https://cph-p2p-msl.akamaized.net/hls/live/2000341/test/master.m3u8',
+    category: 'Hindi/Urdu',
+    isLive: true,
+    nowPlaying: 'Bigg Boss Live Stream',
+    nowPlayingDetails: 'Real-time celebrity camera telemetry inside the infamous glass house.',
+    nextPlaying: 'Khatron Ke Khiladi Highlights',
+    nowPlayingProgress: 60,
+    resolution: '1080p HD',
+    bitrate: '4.8 Mbps'
   }
 ];
 
@@ -166,7 +236,7 @@ export const FAQS: FaqItem[] = [
   }
 ];
 
-export const APK_DOWNLOAD_URL = "/app-release.apk";
+export const APK_DOWNLOAD_URL = "https://github.com/shakilemon73/my-m3u-playlist/raw/main/public/app-release.apk";
 
 // Cloudflare Pages guidelines
 export const CLOUDFLARE_DEVICES_GUIDE = `

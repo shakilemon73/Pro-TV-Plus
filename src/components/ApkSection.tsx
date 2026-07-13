@@ -2,13 +2,18 @@ import React, { useState } from 'react';
 import { Download, Smartphone, Tv, Laptop, ChevronDown, CheckCircle, SmartphoneIcon, ShieldCheck, Heart, AlertCircle, Share2 } from 'lucide-react';
 import { APK_DOWNLOAD_URL } from '../data';
 
-export default function ApkSection() {
+export default function ApkSection({ onDownloadTrigger }: { onDownloadTrigger?: () => void }) {
   const [downloading, setDownloading] = useState(false);
   const [progress, setProgress] = useState(0);
   const [activeStepTab, setActiveStepTab] = useState<'mobile' | 'tv' | 'pc'>('mobile');
   const [copiedLink, setCopiedLink] = useState(false);
 
   const triggerDownload = (e: React.MouseEvent) => {
+    e.preventDefault();
+    if (onDownloadTrigger) {
+      onDownloadTrigger();
+      return;
+    }
     // We let the native download trigger immediately, but we also run our beautiful progress simulator!
     setDownloading(true);
     setProgress(0);
@@ -94,6 +99,8 @@ export default function ApkSection() {
               href={APK_DOWNLOAD_URL}
               onClick={triggerDownload}
               download="Pro-Tv-Plus-v2.apk"
+              target="_blank"
+              rel="noopener noreferrer"
               className="px-8 py-4 rounded-xl bg-primary-red hover:bg-primary-red/90 text-white font-bold text-base transition-all flex items-center justify-center gap-3 shadow-lg shadow-primary-red/20 active:scale-95 text-center cursor-pointer"
             >
               <Download size={20} className={downloading ? "animate-bounce" : ""} />

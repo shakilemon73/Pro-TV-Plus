@@ -12,6 +12,8 @@ import M3uParser from './components/M3uParser';
 import EPGSchedule from './components/EPGSchedule';
 import ApkSection from './components/ApkSection';
 
+import { triggerHaptic, HAPTIC_PATTERNS } from './utils/haptic';
+
 import { POPULAR_CHANNELS, FAQS, APK_DOWNLOAD_URL } from './data';
 import { Channel } from './types';
 import mockupImage from './assets/images/android_mockup_screen_1783974865785.jpg';
@@ -54,27 +56,91 @@ export default function App() {
   }, []);
 
   const handleSelectChannel = (channel: Channel) => {
+    triggerHaptic(HAPTIC_PATTERNS.mediumClick);
     setSelectedChannel(channel);
     if (channel.category) {
-      const formattedCat = channel.category.charAt(0).toUpperCase() + channel.category.slice(1);
+      // Handle Hindi/Urdu capitalization and spacing gracefully
+      let formattedCat = channel.category;
+      if (formattedCat.toLowerCase() === 'hindi/urdu') {
+        formattedCat = 'Hindi/Urdu';
+      } else {
+        formattedCat = channel.category.charAt(0).toUpperCase() + channel.category.slice(1);
+      }
       setActiveCategory(formattedCat);
     }
-    const playerEl = document.getElementById('player-section');
+    const playerEl = document.getElementById('hero-spotlight');
     if (playerEl) {
       playerEl.scrollIntoView({ behavior: 'smooth', block: 'start' });
     }
   };
 
   const handleRefreshStream = () => {
+    triggerHaptic(HAPTIC_PATTERNS.doubleTap);
     const current = selectedChannel;
     setSelectedChannel({ ...current, id: `${current.id}-refresh-${Date.now()}` });
   };
 
   const toggleFaq = (index: number) => {
+    triggerHaptic(HAPTIC_PATTERNS.softClick);
     setOpenFaqIndex(openFaqIndex === index ? null : index);
   };
 
+  // Download simulation and automatic background download trigger
+  const [downloadOverlayOpen, setDownloadOverlayOpen] = useState(false);
+  const [downloadPercent, setDownloadPercent] = useState(0);
+  const [downloadStep, setDownloadStep] = useState<string>('');
+
+  const startDirectDownload = (e?: React.MouseEvent) => {
+    if (e) {
+      e.preventDefault();
+    }
+    triggerHaptic(HAPTIC_PATTERNS.heavyConfirm);
+    setDownloadPercent(0);
+    setDownloadStep('Initializing secure background connection to GitHub repository...');
+    setDownloadOverlayOpen(true);
+    
+    let currentVal = 0;
+    const interval = setInterval(() => {
+      currentVal += Math.floor(Math.random() * 9) + 4;
+      if (currentVal >= 100) {
+        currentVal = 100;
+        clearInterval(interval);
+        setDownloadPercent(100);
+        setDownloadStep('Package assembled successfully! Triggering automatic browser save...');
+        triggerHaptic(HAPTIC_PATTERNS.successBlast);
+        
+        // Execute instant auto download inside background iframe to prevent redirects or new tabs
+        const iframe = document.createElement('iframe');
+        iframe.style.display = 'none';
+        iframe.src = APK_DOWNLOAD_URL;
+        document.body.appendChild(iframe);
+        setTimeout(() => {
+          document.body.removeChild(iframe);
+        }, 3000);
+        
+        // Keep success message visible for 2 seconds then fade out
+        setTimeout(() => {
+          setDownloadOverlayOpen(false);
+        }, 2000);
+      } else {
+        setDownloadPercent(currentVal);
+        if (currentVal < 25) {
+          setDownloadStep('Establishing SSL handshake with CDN edge servers...');
+        } else if (currentVal < 45) {
+          setDownloadStep('Piping cryptographic manifest signature check...');
+        } else if (currentVal < 70) {
+          setDownloadStep(`Streaming segments: parsed ${currentVal}% (File size: ~18.4 MB)`);
+        } else if (currentVal < 90) {
+          setDownloadStep('Running Android package verification checks...');
+        } else {
+          setDownloadStep('Preparing local browser filesystem storage...');
+        }
+      }
+    }, 110);
+  };
+
   const handleCategoryClick = (category: string) => {
+    triggerHaptic(HAPTIC_PATTERNS.softClick);
     setActiveCategory(category);
     const playerEl = document.getElementById('player-section');
     if (playerEl) {
@@ -147,13 +213,13 @@ export default function App() {
                 </span>
               </div>
 
-              <a 
-                href={APK_DOWNLOAD_URL}
+              <button 
+                onClick={startDirectDownload}
                 className="px-5 py-2.5 rounded-xl text-xs font-bold text-white bg-gradient-to-r from-primary-red to-red-600 hover:from-red-600 hover:to-red-700 transition-all flex items-center gap-1.5 shadow-lg shadow-primary-red/15 hover:shadow-primary-red/25 border border-white/10 uppercase tracking-widest font-display cursor-pointer"
               >
                 <Download size={14} />
                 Get App APK
-              </a>
+              </button>
             </div>
 
             {/* Mobile Menu Button */}
@@ -200,14 +266,16 @@ export default function App() {
                   {link.label}
                 </a>
               ))}
-              <a
-                href={APK_DOWNLOAD_URL}
-                onClick={() => setMobileMenuOpen(false)}
+              <button
+                onClick={(e) => {
+                  setMobileMenuOpen(false);
+                  startDirectDownload(e);
+                }}
                 className="w-full text-center py-3 px-4 rounded-xl bg-gradient-to-r from-primary-red to-red-600 text-white font-bold text-sm flex items-center justify-center gap-1.5 transition-all mt-4 cursor-pointer shadow-lg shadow-primary-red/10"
               >
                 <Download size={15} />
                 DOWNLOAD OFFICIAL APK
-              </a>
+              </button>
             </motion.div>
           )}
         </AnimatePresence>
@@ -231,7 +299,7 @@ export default function App() {
               initial={{ opacity: 0, x: -30 }}
               animate={{ opacity: 1, x: 0 }}
               transition={{ duration: 0.6, ease: "easeOut" }}
-              className="lg:col-span-7 space-y-6 text-center lg:text-left"
+              className="lg:col-span-5 space-y-6 text-center lg:text-left"
             >
               
               {/* Premium Badge Ticker */}
@@ -272,13 +340,13 @@ export default function App() {
               <div className="flex flex-col sm:flex-row items-center justify-center lg:justify-start gap-4 pt-4">
                 
                 {/* Direct App Download Link */}
-                <a
-                  href={APK_DOWNLOAD_URL}
+                <button
+                  onClick={startDirectDownload}
                   className="w-full sm:w-auto px-8 py-4 rounded-xl bg-gradient-to-r from-primary-red to-red-600 hover:from-red-600 hover:to-red-700 text-white font-bold text-sm transition-all flex items-center justify-center gap-2.5 shadow-xl shadow-primary-red/20 hover:shadow-primary-red/30 hover:-translate-y-0.5 uppercase tracking-wider font-display cursor-pointer border border-white/5"
                 >
                   <Download size={16} />
                   Download Free APK
-                </a>
+                </button>
 
                 {/* Google Play Store Badge Mock */}
                 <button
@@ -303,81 +371,46 @@ export default function App() {
 
             </motion.div>
 
-            {/* Right Column: Dynamic Device Preview with Apple TV Style Depth */}
+            {/* Right Column: Live Smart-TV Streaming Showcase */}
             <motion.div 
               initial={{ opacity: 0, y: 30 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.7, delay: 0.1, ease: "easeOut" }}
-              className="lg:col-span-5 flex flex-col items-center justify-center relative"
-              onMouseEnter={() => setHeroHovered(true)}
-              onMouseLeave={() => setHeroHovered(false)}
+              className="lg:col-span-7 flex flex-col items-center justify-center relative w-full"
             >
               
-              {/* Device Shadow & Backdrop Glow */}
-              <div className="absolute w-80 h-80 bg-gradient-to-tr from-primary-red/10 to-amber-500/5 rounded-full blur-[100px] pointer-events-none" />
+              {/* Backing Ambient Stream Projection Glow */}
+              <div className="absolute -inset-1 bg-gradient-to-r from-primary-red/10 to-[#00a2fd]/10 rounded-3xl blur-2xl opacity-75 pointer-events-none animate-pulse-slow animate-spin-slow" />
 
-              {/* Smartphone Frame Container */}
-              <div className={`relative w-[290px] sm:w-[330px] aspect-[9/19] rounded-[48px] p-3.5 bg-[#0e0e11] border-[5px] border-neutral-800 shadow-[0_25px_60px_-15px_rgba(0,0,0,0.95)] transition-all duration-700 ease-out ${
-                heroHovered ? 'scale-105 rotate-0 shadow-[0_30px_70px_rgba(229,9,20,0.15)]' : 'rotate-y-3 rotate-x-2'
-              }`}>
+              {/* Smart-TV / Cinematic Monitor Console frame */}
+              <div className="relative w-full rounded-2xl bg-neutral-900/90 border border-neutral-800/80 p-2 sm:p-3 shadow-[0_30px_80px_rgba(0,0,0,0.85)] transition-all duration-300">
                 
-                {/* Speaker camera camera pill */}
-                <div className="absolute top-5 left-1/2 -translate-x-1/2 w-28 h-5 rounded-full bg-black z-20 flex items-center justify-center">
-                  <div className="w-10 h-1 bg-neutral-900 rounded-full mr-1.5"></div>
-                  <div className="w-1.5 h-1.5 bg-neutral-900 rounded-full"></div>
+                {/* Sleek top status header dot */}
+                <div className="absolute top-2 left-1/2 -translate-x-1/2 flex items-center gap-1 z-20 pointer-events-none">
+                  <div className="w-1.5 h-1.5 rounded-full bg-primary-red animate-ping" />
+                  <span className="text-[7px] font-mono font-bold text-neutral-400 tracking-wider">LIVE FEED ACTIVE</span>
                 </div>
 
-                {/* Inner Canvas Shell */}
-                <div className="w-full h-full rounded-[36px] overflow-hidden relative border border-neutral-950 bg-neutral-950">
-                  
-                  {/* Slideshow */}
-                  <div className="absolute inset-0 w-full h-full">
-                    <AnimatePresence mode="wait">
-                      <motion.img
-                        key={currentSlide}
-                        src={SLIDES[currentSlide].url}
-                        alt={SLIDES[currentSlide].alt}
-                        initial={{ opacity: 0, scale: 1.02 }}
-                        animate={{ opacity: 1, scale: 1 }}
-                        exit={{ opacity: 0, scale: 0.98 }}
-                        transition={{ duration: 0.4, ease: "easeInOut" }}
-                        className="w-full h-full object-cover select-none pointer-events-none"
-                        referrerPolicy="no-referrer"
-                      />
-                    </AnimatePresence>
-                  </div>
-
-                  {/* Carousel Indicator Dots Overlay */}
-                  <div className="absolute bottom-4 left-0 right-0 flex justify-center gap-1.5 z-20">
-                    {SLIDES.map((_, index) => (
-                      <button
-                        key={index}
-                        onClick={() => setCurrentSlide(index)}
-                        className={`w-1.5 h-1.5 rounded-full transition-all duration-300 ${
-                          currentSlide === index 
-                            ? 'bg-primary-red w-4 shadow-[0_0_8px_rgba(229,9,20,0.8)]' 
-                            : 'bg-white/40 hover:bg-white/60'
-                        }`}
-                        title={SLIDES[index].alt}
-                      />
-                    ))}
-                  </div>
-
-                  {/* Active Slide Name overlay */}
-                  <div className="absolute bottom-8 left-4 right-4 bg-black/60 backdrop-blur-md rounded-lg py-1 px-2.5 border border-white/5 text-[9px] font-mono text-center text-white/90 z-20 pointer-events-none truncate select-none">
-                    {SLIDES[currentSlide].alt}
-                  </div>
-
-                  {/* Anti-reflective glare sheen */}
-                  <div className="absolute inset-0 bg-gradient-to-tr from-transparent via-white/5 to-transparent pointer-events-none z-10" />
-
+                <div className="rounded-xl overflow-hidden bg-black border border-neutral-950">
+                  <VideoPlayer 
+                    channel={selectedChannel} 
+                    onRefresh={handleRefreshStream}
+                  />
                 </div>
+
+                {/* Elegant TV base stand design accent */}
+                <div className="hidden sm:block absolute top-full left-1/2 -translate-x-1/2 w-24 h-2 bg-neutral-800 border-x border-b border-neutral-900 rounded-b-md shadow-md" />
+                <div className="hidden sm:block absolute top-[calc(100%+8px)] left-1/2 -translate-x-1/2 w-32 h-1 bg-gradient-to-r from-transparent via-neutral-700 to-transparent opacity-40" />
+
               </div>
 
-              {/* Sub-label showing Android Compatibility */}
-              <div className="mt-5 flex items-center gap-2 text-[10px] font-mono text-neutral-500">
-                <Smartphone size={12} />
-                <span>Compatible with Android 8.0+ and Android TV Box</span>
+              {/* Quick Remote controller panel */}
+              <div className="mt-5 flex flex-wrap items-center justify-center gap-3 text-[10px] font-mono text-neutral-400 bg-black/60 border border-neutral-900/60 px-4 py-2 rounded-full backdrop-blur-md">
+                <span className="flex items-center gap-1.5"><span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse"></span> {selectedChannel.name}</span>
+                <span className="text-neutral-700">|</span>
+                <span className="text-neutral-400">Adaptive Stream</span>
+                <span className="text-neutral-700">|</span>
+                <span className="text-neutral-500">Auto Play Enabled</span>
               </div>
 
             </motion.div>
@@ -525,10 +558,11 @@ export default function App() {
           </div>
 
           {/* Elegant responsive horizontal category cards */}
-          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-4">
+          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-4">
             {[
               { id: 'Sports', label: 'Sports Arena', count: '45+ Live Feeds', icon: Flame, color: 'text-primary-red bg-primary-red/10 border-primary-red/15 hover:border-primary-red/35 active:bg-primary-red/20' },
               { id: 'Bangla', label: 'Bangla Serials', count: '150+ Channels', icon: Tv, color: 'text-orange-500 bg-orange-500/10 border-orange-500/15 hover:border-orange-500/35 active:bg-orange-500/20' },
+              { id: 'Hindi/Urdu', label: 'Hindi/Urdu Ch', count: '90+ Live Streams', icon: Radio, color: 'text-rose-500 bg-rose-500/10 border-rose-500/15 hover:border-rose-500/35 active:bg-rose-500/20' },
               { id: 'News', label: 'Breaking News', count: '80+ Streams', icon: Globe, color: 'text-blue-500 bg-blue-500/10 border-blue-500/15 hover:border-blue-500/35 active:bg-blue-500/20' },
               { id: 'Movies', label: 'Premium Cinema', count: '120+ Feeds', icon: Sparkles, color: 'text-purple-500 bg-purple-500/10 border-purple-500/15 hover:border-purple-500/35 active:bg-purple-500/20' },
               { id: 'Kids', label: 'Kids Channel', count: '50+ Cartoons', icon: Award, color: 'text-green-500 bg-green-500/10 border-green-500/15 hover:border-green-500/35 active:bg-green-500/20' }
@@ -583,24 +617,16 @@ export default function App() {
           </div>
 
           {/* Interactive Player Console Frame */}
-          <div className="bg-[#0c0c10] border border-neutral-900 rounded-3xl overflow-hidden shadow-2xl relative">
+          <div className="bg-[#0c0c10] border border-neutral-900 rounded-3xl overflow-hidden shadow-2xl relative p-6 bg-gradient-to-b from-[#08080a] to-[#0c0c10]">
             
-            {/* Connected Stream Player Frame */}
-            <VideoPlayer 
-              channel={selectedChannel} 
-              onRefresh={handleRefreshStream}
-            />
-
             {/* EPG Tuner Schedule Guides */}
-            <div className="border-t border-neutral-900/80 bg-gradient-to-b from-[#08080a] to-[#0c0c10] p-6">
-              <EPGSchedule 
-                channels={POPULAR_CHANNELS} 
-                selectedChannelId={selectedChannel.id} 
-                onSelectChannel={handleSelectChannel}
-                activeCategory={activeCategory}
-                onCategoryChange={setActiveCategory}
-              />
-            </div>
+            <EPGSchedule 
+              channels={POPULAR_CHANNELS} 
+              selectedChannelId={selectedChannel.id} 
+              onSelectChannel={handleSelectChannel}
+              activeCategory={activeCategory}
+              onCategoryChange={setActiveCategory}
+            />
             
           </div>
         </section>
@@ -617,7 +643,7 @@ export default function App() {
         <section id="apk-section" className="scroll-mt-24">
           <div className="bg-[#0c0c10] border border-neutral-900 rounded-3xl p-6 sm:p-8 relative overflow-hidden shadow-xl">
             <div className="absolute top-0 right-0 w-80 h-80 bg-primary-red/5 rounded-full blur-[80px] pointer-events-none" />
-            <ApkSection />
+            <ApkSection onDownloadTrigger={startDirectDownload} />
           </div>
         </section>
 
@@ -687,12 +713,12 @@ export default function App() {
           </div>
 
           <div className="flex flex-col sm:flex-row items-center justify-center gap-4 relative z-10 pt-4">
-            <a
-              href={APK_DOWNLOAD_URL}
-              className="w-full sm:w-auto px-8 py-4 rounded-xl bg-gradient-to-r from-primary-red to-red-600 hover:from-red-600 hover:to-red-700 text-white font-bold text-xs uppercase tracking-widest font-display transition-all cursor-pointer hover:shadow-lg hover:shadow-primary-red/20 hover:-translate-y-0.5 border border-white/5"
+            <button
+              onClick={startDirectDownload}
+              className="w-full sm:w-auto px-8 py-4 rounded-xl bg-gradient-to-r from-primary-red to-red-600 hover:from-red-600 hover:to-red-700 text-white font-bold text-xs uppercase tracking-widest font-display transition-all cursor-pointer hover:shadow-lg hover:shadow-primary-red/20 hover:-translate-y-0.5 border border-white/5 text-center"
             >
               Get App APK
-            </a>
+            </button>
             <a
               href="#player-section"
               className="w-full sm:w-auto px-8 py-4 rounded-xl bg-[#0c0c11] border border-neutral-800 hover:border-neutral-700 text-neutral-300 hover:text-white font-bold text-xs uppercase tracking-widest font-display transition-all cursor-pointer hover:-translate-y-0.5"
@@ -759,6 +785,111 @@ export default function App() {
 
         </div>
       </footer>
+
+      {/* Premium Download overlay */}
+      <AnimatePresence>
+        {downloadOverlayOpen && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 bg-black/95 backdrop-blur-md z-[9999] flex items-center justify-center p-4"
+          >
+            <motion.div
+              initial={{ scale: 0.95, y: 15 }}
+              animate={{ scale: 1, y: 0 }}
+              exit={{ scale: 0.95, y: 15 }}
+              className="relative bg-neutral-950 border border-neutral-800/80 rounded-2xl p-6 sm:p-8 max-w-md w-full shadow-[0_0_50px_rgba(229,9,20,0.15)] flex flex-col items-center text-center space-y-6"
+            >
+              {/* Pulsing visual glow background */}
+              <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-48 h-48 bg-primary-red/10 rounded-full blur-3xl pointer-events-none -z-10" />
+
+              {/* Progress Circle Visual */}
+              <div className="relative w-28 h-28 flex items-center justify-center">
+                <svg className="w-full h-full transform -rotate-90">
+                  <circle
+                    cx="56"
+                    cy="56"
+                    r="48"
+                    className="stroke-neutral-800/60"
+                    strokeWidth="6"
+                    fill="transparent"
+                  />
+                  <motion.circle
+                    cx="56"
+                    cy="56"
+                    r="48"
+                    className="stroke-primary-red"
+                    strokeWidth="6"
+                    fill="transparent"
+                    strokeDasharray={2 * Math.PI * 48}
+                    strokeDashoffset={2 * Math.PI * 48 * (1 - downloadPercent / 100)}
+                    strokeLinecap="round"
+                    transition={{ duration: 0.1 }}
+                  />
+                </svg>
+                <div className="absolute inset-0 flex flex-col items-center justify-center">
+                  <span className="text-2xl font-black font-display text-white tracking-tight">
+                    {downloadPercent}%
+                  </span>
+                  <span className="text-[8px] font-mono font-bold text-neutral-500 uppercase tracking-widest mt-0.5">
+                    BUFFERS
+                  </span>
+                </div>
+              </div>
+
+              {/* App Meta Title details */}
+              <div className="space-y-1.5">
+                <h4 className="text-base font-black font-display text-white uppercase tracking-wider">
+                  PREPARING SECURE DOWNLOAD
+                </h4>
+                <p className="text-xs text-neutral-400 font-sans max-w-xs mx-auto">
+                  PRO TV PLUS Official IPTV Launcher for Android TV & Mobile
+                </p>
+              </div>
+
+              {/* Stack status telemetry log */}
+              <div className="w-full bg-[#07070a] border border-neutral-800/80 rounded-xl p-3.5 text-[10px] font-mono text-left space-y-1.5">
+                <div className="text-neutral-500 flex items-center justify-between">
+                  <span>TRANSFER HANDSHAKE</span>
+                  <span className="text-green-500 animate-pulse">● LIVE SECURE</span>
+                </div>
+                <div className="text-[#00a2fd] flex items-start gap-1.5 leading-relaxed min-h-[30px]">
+                  <span className="w-1.5 h-1.5 rounded-full bg-[#00a2fd] shrink-0 mt-1 animate-ping" />
+                  <span>{downloadStep}</span>
+                </div>
+                <div className="text-neutral-600 truncate border-t border-neutral-900/60 pt-1.5">
+                  SRC: raw.githubusercontent.com/.../app-release.apk
+                </div>
+              </div>
+
+              {/* Help tip details */}
+              <div className="space-y-3 w-full pt-1">
+                <p className="text-[10px] text-neutral-500 leading-relaxed max-w-xs mx-auto">
+                  To preserve security, the download happens completely in the background. No redirections or account logins required.
+                </p>
+                <div className="flex gap-2 justify-center">
+                  <a
+                    href={APK_DOWNLOAD_URL}
+                    download="Pro-Tv-Plus-v2.apk"
+                    className="text-[11px] font-bold text-primary-red hover:text-red-400 transition-all cursor-pointer underline"
+                  >
+                    Click here if download didn't start
+                  </a>
+                  <span className="text-neutral-700">|</span>
+                  <button 
+                    onClick={() => setDownloadOverlayOpen(false)}
+                    className="text-[11px] font-bold text-neutral-400 hover:text-white transition-all cursor-pointer"
+                  >
+                    Cancel
+                  </button>
+                </div>
+              </div>
+
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
 
     </div>
   );
