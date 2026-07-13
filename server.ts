@@ -121,7 +121,7 @@ async function startServer() {
     }
 
     try {
-      const response = await fetch('https://raw.githubusercontent.com/shakilemon73/my-m3u-playlist/main/app-update.json');
+      const response = await fetch('https://github.com/shakilemon73/my-m3u-playlist/raw/refs/heads/main/app-update.json');
       if (!response.ok) {
         throw new Error(`GitHub returned status ${response.status}`);
       }
@@ -141,7 +141,7 @@ async function startServer() {
         // Fallback placeholders
         versionCode: 100,
         versionName: '1.0.0',
-        apkUrl: 'https://github.com/shakilemon73/my-m3u-playlist/raw/main/public/app-release.apk',
+        apkUrl: 'https://github.com/shakilemon73/my-m3u-playlist/raw/refs/heads/main/releases/download/app-release.apk',
         changelog: '• Performance improvements\n• Stability fixes'
       });
     }
@@ -149,7 +149,7 @@ async function startServer() {
 
   // Proxy download route to prevent cross-origin blocks and trigger native download
   app.get('/api/download-apk', async (req, res) => {
-    const targetUrl = (req.query.url as string) || (cachedUpdateData?.apkUrl) || 'https://github.com/shakilemon73/my-m3u-playlist/raw/main/public/app-release.apk';
+    const targetUrl = (req.query.url as string) || (cachedUpdateData?.apkUrl) || 'https://github.com/shakilemon73/my-m3u-playlist/raw/refs/heads/main/releases/download/app-release.apk';
     
     try {
       console.log(`Proxying APK download from: ${targetUrl}`);

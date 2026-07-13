@@ -236,7 +236,7 @@ export const FAQS: FaqItem[] = [
   }
 ];
 
-export const APK_DOWNLOAD_URL = "https://github.com/shakilemon73/my-m3u-playlist/raw/main/public/app-release.apk";
+export const APK_DOWNLOAD_URL = "https://github.com/shakilemon73/my-m3u-playlist/raw/refs/heads/main/releases/download/app-release.apk";
 
 // Cloudflare Pages guidelines
 export const CLOUDFLARE_DEVICES_GUIDE = `

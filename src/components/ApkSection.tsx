@@ -6,7 +6,8 @@ interface AppUpdateInfo {
   versionCode: number;
   versionName: string;
   apkUrl: string;
-  changelog: string;
+  changelog?: string;
+  releaseNotes?: string;
 }
 
 export default function ApkSection({ onDownloadTrigger }: { onDownloadTrigger?: () => void }) {
@@ -191,7 +192,7 @@ export default function ApkSection({ onDownloadTrigger }: { onDownloadTrigger?: 
               <div className="space-y-1.5">
                 <p className="text-xs font-semibold text-neutral-300 uppercase tracking-wider font-display">Changelog & Updates:</p>
                 <div className="text-neutral-400 text-[11px] leading-relaxed space-y-1 bg-neutral-900/60 p-2.5 rounded-lg border border-neutral-800/40 max-h-32 overflow-y-auto scrollbar-thin">
-                  {(updateInfo.changelog || '').split('\n').map((line, i) => {
+                  {(updateInfo.changelog || updateInfo.releaseNotes || '').split('\n').map((line, i) => {
                     const cleanLine = line.replace(/^[•\s\-\*]+/, '').trim();
                     if (!cleanLine) return null;
                     return (
