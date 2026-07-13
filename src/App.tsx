@@ -109,14 +109,17 @@ export default function App() {
         setDownloadStep('Package assembled successfully! Triggering automatic browser save...');
         triggerHaptic(HAPTIC_PATTERNS.successBlast);
         
-        // Execute instant auto download inside background iframe to prevent redirects or new tabs
-        const iframe = document.createElement('iframe');
-        iframe.style.display = 'none';
-        iframe.src = APK_DOWNLOAD_URL;
-        document.body.appendChild(iframe);
-        setTimeout(() => {
-          document.body.removeChild(iframe);
-        }, 3000);
+        // Execute real, reliable browser download of the APK file
+        try {
+          const link = document.createElement('a');
+          link.href = APK_DOWNLOAD_URL;
+          link.setAttribute('download', 'app-release.apk');
+          document.body.appendChild(link);
+          link.click();
+          document.body.removeChild(link);
+        } catch (err) {
+          window.location.assign(APK_DOWNLOAD_URL);
+        }
         
         // Keep success message visible for 2 seconds then fade out
         setTimeout(() => {

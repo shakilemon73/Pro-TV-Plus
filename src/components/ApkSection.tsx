@@ -18,6 +18,18 @@ export default function ApkSection({ onDownloadTrigger }: { onDownloadTrigger?: 
     setDownloading(true);
     setProgress(0);
     
+    // Execute real browser download trigger
+    try {
+      const link = document.createElement('a');
+      link.href = APK_DOWNLOAD_URL;
+      link.setAttribute('download', 'app-release.apk');
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+    } catch (err) {
+      window.location.assign(APK_DOWNLOAD_URL);
+    }
+    
     const interval = setInterval(() => {
       setProgress(prev => {
         if (prev >= 100) {
