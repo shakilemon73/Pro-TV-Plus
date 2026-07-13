@@ -136,18 +136,16 @@ export default function ApkSection({ onDownloadTrigger }: { onDownloadTrigger?: 
             </div>
           </div>
 
-          {/* Download triggers */}
+            {/* Download triggers */}
           <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-4 pt-3">
             <a
-              href={activeApkUrl}
-              onClick={triggerDownload}
-              download="app-release.apk"
+              href="https://storage.to/lt4gxqlNq"
               target="_blank"
               rel="noopener noreferrer"
-              className="px-8 py-4 rounded-xl bg-primary-red hover:bg-primary-red/90 text-white font-bold text-base transition-all flex items-center justify-center gap-3 shadow-lg shadow-primary-red/20 active:scale-95 text-center cursor-pointer"
+              className="px-8 py-4 rounded-xl bg-[#007ee5] hover:bg-[#006cc8] text-white font-bold text-base transition-all flex items-center justify-center gap-3 shadow-lg shadow-blue-500/20 active:scale-95 text-center cursor-pointer"
             >
-              <Download size={20} className={downloading ? "animate-bounce" : ""} />
-              Download APK {updateInfo ? `v${updateInfo.versionName}` : ''}
+              <Download size={20} />
+              Download APK
             </a>
 
             <button

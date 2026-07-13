@@ -86,7 +86,7 @@ export default function VideoPlayer({ channel, onRefresh }: VideoPlayerProps) {
 
     if (Hls.isSupported()) {
       const hls = new Hls({
-        enableWorker: true,
+        enableWorker: false,
         lowLatencyMode: true,
         backBufferLength: 90,
         maxBufferSize: 30 * 1000 * 1000, // 30MB
@@ -360,15 +360,16 @@ export default function VideoPlayer({ channel, onRefresh }: VideoPlayerProps) {
 
         {/* REAL VIDEO ELEMENT */}
         {channel && (
-          <video
-            ref={videoRef}
-            className={`w-full h-full object-contain relative z-10 transition-opacity duration-300 ${
-              streamActive && !playbackError ? 'opacity-100' : 'opacity-0 pointer-events-none'
-            }`}
-            playsInline
-            autoPlay
-            onClick={togglePlay}
-          />
+            <video
+              ref={videoRef}
+              className={`w-full h-full object-contain relative z-10 transition-opacity duration-300 ${
+                streamActive && !playbackError ? 'opacity-100' : 'opacity-0 pointer-events-none'
+              }`}
+              playsInline
+              muted
+              autoPlay
+              onClick={togglePlay}
+            />
         )}
 
         {/* Unmute overlay prompt */}
