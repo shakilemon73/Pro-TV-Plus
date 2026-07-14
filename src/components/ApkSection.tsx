@@ -36,7 +36,7 @@ export default function ApkSection({ onDownloadTrigger }: { onDownloadTrigger?: 
   }, []);
 
   const isAndroid = typeof navigator !== 'undefined' && /Android/i.test(navigator.userAgent);
-  const activeApkUrl = updateInfo?.apkUrl || APK_DOWNLOAD_URL;
+  const activeApkUrl = APK_DOWNLOAD_URL;
 
   const triggerDownload = (e: React.MouseEvent) => {
     e.preventDefault();
@@ -144,7 +144,7 @@ export default function ApkSection({ onDownloadTrigger }: { onDownloadTrigger?: 
                 className="px-8 py-4 rounded-xl bg-primary-red hover:bg-primary-red/90 text-white font-bold text-base transition-all flex items-center justify-center gap-3 shadow-lg shadow-primary-red/20 active:scale-95 text-center cursor-pointer font-display uppercase tracking-wider"
               >
                 <Download size={20} className={downloading ? "animate-bounce" : ""} />
-                Secure Download (GitHub)
+                Secure Download (Dropbox)
               </button>
 
               <button
@@ -154,34 +154,6 @@ export default function ApkSection({ onDownloadTrigger }: { onDownloadTrigger?: 
                 <Share2 size={16} />
                 {copiedLink ? 'Copied URL!' : 'Share Download Link'}
               </button>
-            </div>
-
-            {/* Alternative Mirrors */}
-            <div className="space-y-2 pt-2 border-t border-neutral-900/60">
-              <p className="text-[10px] font-mono font-bold text-neutral-500 uppercase tracking-widest">
-                Alternative Mirrors & Direct Redirections:
-              </p>
-              <div className="flex flex-wrap gap-3">
-                <a
-                  href="https://www.dropbox.com/scl/fi/jqizyd1z758rq4fs5zpxu/protvplus.apk?rlkey=qsu1dt1fxg5vue17mgi4l7d9u&st=u0te745i&dl=1"
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="px-4 py-2.5 rounded-lg bg-[#007ee5]/10 hover:bg-[#007ee5]/20 border border-[#007ee5]/20 text-[#007ee5] hover:text-blue-400 font-bold text-xs transition-all flex items-center gap-2 cursor-pointer"
-                >
-                  <Download size={14} />
-                  Dropbox Direct Mirror
-                </a>
-
-                <a
-                  href="https://storage.to/lt4gxqlNq"
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="px-4 py-2.5 rounded-lg bg-[#00a2fd]/10 hover:bg-[#00a2fd]/20 border border-[#00a2fd]/20 text-[#00a2fd] hover:text-blue-300 font-bold text-xs transition-all flex items-center gap-2 cursor-pointer"
-                >
-                  <Download size={14} />
-                  Storage.to Redirect
-                </a>
-              </div>
             </div>
           </div>
 

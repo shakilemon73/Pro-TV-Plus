@@ -236,7 +236,7 @@ export const FAQS: FaqItem[] = [
   }
 ];
 
-export const APK_DOWNLOAD_URL = "https://github.com/shakilemon73/my-m3u-playlist/raw/refs/heads/main/releases/download/app-release.apk";
+export const APK_DOWNLOAD_URL = "https://www.dropbox.com/scl/fi/jqizyd1z758rq4fs5zpxu/protvplus.apk?rlkey=qsu1dt1fxg5vue17mgi4l7d9u&st=u0te745i&dl=1";
 
 // Cloudflare Pages guidelines
 export const CLOUDFLARE_DEVICES_GUIDE = `
