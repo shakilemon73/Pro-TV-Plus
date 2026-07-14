@@ -1,5 +1,5 @@
-import React, { useState, useEffect } from 'react';
-import { Search, Radio, Play, Flame, Tv, RefreshCw, Heart, Clock } from 'lucide-react';
+import React, { useState } from 'react';
+import { Search, Radio, Play, Flame, Tv, RefreshCw } from 'lucide-react';
 import { Channel } from '../types';
 import { triggerHaptic, HAPTIC_PATTERNS } from '../utils/haptic';
 
@@ -22,10 +22,6 @@ export default function EPGSchedule({
   const [localCategory, setLocalCategory] = useState<string>('All');
   const [failedLogos, setFailedLogos] = useState<Record<string, boolean>>({});
 
-  // Favorites & Recents database state
-  const [favorites, setFavorites] = useState<Channel[]>([]);
-  const [history, setHistory] = useState<Channel[]>([]);
-
   const activeCategory = controlledCategory !== undefined ? controlledCategory : localCategory;
   const setActiveCategory = (cat: string) => {
     if (onCategoryChange) {
@@ -35,126 +31,12 @@ export default function EPGSchedule({
     }
   };
 
-  const categories = ['All', '❤️ Favorites', '🕒 Recents', 'Sports', 'Bangla', 'Hindi/Urdu', 'News', 'Movies', 'Kids'];
+  const categories = ['All', 'Sports', 'Bangla', 'Hindi/Urdu', 'News', 'Movies', 'Kids'];
 
-  // Fetch Favorites and Recents on mount & active stream update
-  const fetchFavoritesAndHistory = async () => {
-    try {
-      // 1. Initialize from localStorage
-      const localFavsRaw = localStorage.getItem('protv_local_favorites');
-      let localFavs = localFavsRaw ? JSON.parse(localFavsRaw) : [];
-      setFavorites(localFavs);
-
-      const localHistRaw = localStorage.getItem('protv_local_history');
-      let localHist = localHistRaw ? JSON.parse(localHistRaw) : [];
-      setHistory(localHist);
-
-      // 2. Try fetching from server API and merge/sync
-      try {
-        const favRes = await fetch('/api/favorites');
-        if (favRes.ok) {
-          const favData = await favRes.json();
-          // Merge server favorites with local favorites
-          let mergedFavs = [...localFavs];
-          favData.forEach((sf: any) => {
-            if (!mergedFavs.some((f: any) => f.id === sf.id || f.streamUrl === sf.streamUrl)) {
-              mergedFavs.push(sf);
-            }
-          });
-          setFavorites(mergedFavs);
-          localStorage.setItem('protv_local_favorites', JSON.stringify(mergedFavs));
-        }
-      } catch (e) {
-        console.warn('API favorites sync not available:', e);
-      }
-
-      try {
-        const histRes = await fetch('/api/history');
-        if (histRes.ok) {
-          const histData = await histRes.json();
-          // Merge server history with local history
-          let mergedHist = [...localHist];
-          histData.forEach((sh: any) => {
-            if (!mergedHist.some((h: any) => h.id === sh.id || h.streamUrl === sh.streamUrl)) {
-              mergedHist.push(sh);
-            }
-          });
-          // Limit to 25 items
-          if (mergedHist.length > 25) {
-            mergedHist = mergedHist.slice(0, 25);
-          }
-          setHistory(mergedHist);
-          localStorage.setItem('protv_local_history', JSON.stringify(mergedHist));
-        }
-      } catch (e) {
-        console.warn('API history sync not available:', e);
-      }
-    } catch (e) {
-      console.error('Error synchronizing favorites or history from server:', e);
-    }
-  };
-
-  useEffect(() => {
-    fetchFavoritesAndHistory();
-  }, [selectedChannelId]);
-
-  // Toggle favorite channel status on backend database
-  const toggleFavorite = async (chan: Channel, e: React.MouseEvent) => {
-    e.stopPropagation();
-    triggerHaptic(HAPTIC_PATTERNS.softClick);
-    
-    // Get current local favorites
-    const localFavsRaw = localStorage.getItem('protv_local_favorites');
-    let localFavs = localFavsRaw ? JSON.parse(localFavsRaw) : [];
-    
-    const isFav = localFavs.some((f: any) => f.id === chan.id || f.streamUrl === chan.streamUrl);
-    let updatedFavs = [];
-
-    if (isFav) {
-      updatedFavs = localFavs.filter((f: any) => f.id !== chan.id && f.streamUrl !== chan.streamUrl);
-    } else {
-      updatedFavs = [...localFavs, chan];
-    }
-
-    // Instantly update UI and localStorage
-    setFavorites(updatedFavs);
-    localStorage.setItem('protv_local_favorites', JSON.stringify(updatedFavs));
-
-    try {
-      if (isFav) {
-        const idToRemove = localFavs.find((f: any) => f.id === chan.id || f.streamUrl === chan.streamUrl)?.id || chan.id;
-        await fetch(`/api/favorites/${encodeURIComponent(idToRemove)}`, { method: 'DELETE' });
-      } else {
-        await fetch('/api/favorites', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify(chan)
-        });
-      }
-    } catch (err) {
-      console.warn('Failed to toggle favorite on server:', err);
-    }
-  };
-
-  // Determine display channels based on category selection
-  let displayChannels = channels;
-  if (activeCategory === '❤️ Favorites') {
-    displayChannels = favorites;
-  } else if (activeCategory === '🕒 Recents') {
-    displayChannels = history;
-  }
-
-  const filteredChannels = displayChannels.filter(channel => {
+  const filteredChannels = channels.filter(channel => {
     const matchesSearch = channel.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-                          (channel.nowPlaying && channel.nowPlaying.toLowerCase().includes(searchQuery.toLowerCase()));
-    
-    let matchesCategory = false;
-    if (activeCategory === 'All' || activeCategory === '❤️ Favorites' || activeCategory === '🕒 Recents') {
-      matchesCategory = true;
-    } else {
-      matchesCategory = channel.category.toLowerCase() === activeCategory.toLowerCase();
-    }
-    
+                          channel.nowPlaying.toLowerCase().includes(searchQuery.toLowerCase());
+    const matchesCategory = activeCategory === 'All' || channel.category.toLowerCase() === activeCategory.toLowerCase();
     return matchesSearch && matchesCategory;
   });
 
@@ -247,31 +129,17 @@ export default function EPGSchedule({
                     </div>
                   </div>
 
-                  {/* Active Play icon or live pulse + Heart favorite button */}
-                  <div className="flex items-center gap-1.5 shrink-0">
-                    <button
-                      onClick={(e) => toggleFavorite(chan, e)}
-                      className={`p-1.5 rounded-lg border transition-all cursor-pointer ${
-                        favorites.some(f => f.id === chan.id || f.streamUrl === chan.streamUrl)
-                          ? 'bg-primary-red/15 border-primary-red/30 text-primary-red'
-                          : 'bg-[#111115] border-neutral-850 text-neutral-500 hover:text-neutral-300'
-                      }`}
-                      title={favorites.some(f => f.id === chan.id || f.streamUrl === chan.streamUrl) ? "Remove from Favorites" : "Add to Favorites"}
-                    >
-                      <Heart size={11} className={favorites.some(f => f.id === chan.id || f.streamUrl === chan.streamUrl) ? "fill-current" : ""} />
+                  {/* Active Play icon or live pulse */}
+                  {isSelected ? (
+                    <div className="flex items-center gap-1.5 bg-primary-red/10 text-primary-red px-2.5 py-1 rounded-md text-[9px] font-bold font-mono">
+                      <Radio size={12} className="live-dot-pulse text-primary-red" />
+                      PLAYING
+                    </div>
+                  ) : (
+                    <button className="p-1.5 rounded-lg bg-[#111115] hover:bg-primary-red/20 text-neutral-400 group-hover:text-white transition-all border border-neutral-800/50">
+                      <Play size={11} className="fill-current text-neutral-400 group-hover:text-white" />
                     </button>
-
-                    {isSelected ? (
-                      <div className="flex items-center gap-1.5 bg-primary-red/10 text-primary-red px-2.5 py-1.5 rounded-lg text-[9px] font-bold font-mono">
-                        <Radio size={12} className="live-dot-pulse text-primary-red" />
-                        PLAYING
-                      </div>
-                    ) : (
-                      <button className="p-1.5 rounded-lg bg-[#111115] hover:bg-primary-red/20 text-neutral-400 group-hover:text-white transition-all border border-neutral-800/50 cursor-pointer">
-                        <Play size={11} className="fill-current text-neutral-400 group-hover:text-white" />
-                      </button>
-                    )}
-                  </div>
+                  )}
                 </div>
 
                 {/* EPG / Current Playing details */}

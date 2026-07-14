@@ -1,1 +1,5 @@
-/* / 200
+# Cloudflare Pages — redirect rules
+# https://developers.cloudflare.com/pages/configuration/redirects/
+
+# SPA / 404 fallback — serve index.html for any unmatched route
+/*    /index.html    200

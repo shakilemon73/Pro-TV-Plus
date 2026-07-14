@@ -58,36 +58,6 @@ export default function App() {
   const handleSelectChannel = (channel: Channel) => {
     triggerHaptic(HAPTIC_PATTERNS.mediumClick);
     setSelectedChannel(channel);
-
-    // Log play event to local storage history
-    try {
-      const localHistRaw = localStorage.getItem('protv_local_history');
-      let localHist = localHistRaw ? JSON.parse(localHistRaw) : [];
-      localHist = localHist.filter((h: any) => h.streamUrl !== channel.streamUrl && h.id !== channel.id);
-      const newHistoryItem = {
-        ...channel,
-        playedAt: new Date().toISOString()
-      };
-      localHist.unshift(newHistoryItem);
-      if (localHist.length > 25) {
-        localHist = localHist.slice(0, 25);
-      }
-      localStorage.setItem('protv_local_history', JSON.stringify(localHist));
-    } catch (e) {
-      console.warn('Failed to update local history:', e);
-    }
-
-    // Log play event to backend history
-    try {
-      fetch('/api/history', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(channel)
-      }).catch(e => console.error('Error logging history:', e));
-    } catch (e) {
-      console.error('Error logging played channel to server:', e);
-    }
-
     if (channel.category) {
       // Handle Hindi/Urdu capitalization and spacing gracefully
       let formattedCat = channel.category;
@@ -141,7 +111,7 @@ export default function App() {
     }
 
     setDownloadPercent(0);
-    setDownloadStep('Initializing secure background connection to Dropbox cloud storage...');
+    setDownloadStep('Initializing secure background connection to GitHub repository...');
     setDownloadOverlayOpen(true);
     
     let currentVal = 0;
@@ -381,13 +351,13 @@ export default function App() {
                   className="w-full sm:w-auto px-8 py-4 rounded-xl bg-gradient-to-r from-primary-red to-red-600 hover:from-red-600 hover:to-red-700 text-white font-bold text-sm transition-all flex items-center justify-center gap-2.5 shadow-xl shadow-primary-red/20 hover:shadow-primary-red/30 hover:-translate-y-0.5 uppercase tracking-wider font-display cursor-pointer border border-white/5"
                 >
                   <Download size={16} />
-                  Download Free APK (Dropbox)
+                  Download Free APK
                 </button>
 
                 {/* Google Play Store Badge Mock */}
                 <button
                   onClick={() => {
-                    alert("Pro TV Plus APK is verified safe and clean. Google Play Store optimization is currently packaging for regional Android TV compliance. Click 'Download Free APK (Dropbox)' to stream immediately!");
+                    alert("Pro TV Plus APK is verified safe and clean. Google Play Store optimization is currently packaging for regional Android TV compliance. Click 'Download Free APK' to stream immediately!");
                   }}
                   className="w-full sm:w-auto px-6 py-3 rounded-xl bg-[#09090c]/90 hover:bg-neutral-950 border border-neutral-800/80 hover:border-neutral-700 text-white transition-all flex items-center justify-center gap-3 hover:-translate-y-0.5 cursor-pointer text-left"
                 >
