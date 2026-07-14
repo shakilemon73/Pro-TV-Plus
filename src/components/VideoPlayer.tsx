@@ -98,9 +98,10 @@ export default function VideoPlayer({ channel, onRefresh }: VideoPlayerProps) {
         });
     };
 
-    const streamSource = useProxy 
-      ? `/api/proxy?url=${encodeURIComponent(channel.streamUrl)}`
-      : channel.streamUrl;
+    const RELAY_PROXY = 'https://snowy-perch-1699.shakilemon73.deno.net/?url=';
+const streamSource = useProxy 
+  ? `${RELAY_PROXY}${encodeURIComponent(channel.streamUrl)}`
+  : channel.streamUrl;
 
     if (Hls.isSupported()) {
       const hls = new Hls({
