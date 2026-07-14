@@ -14,11 +14,13 @@
 /
   Cache-Control: no-cache, must-revalidate
 
-# ── JS / CSS — always revalidate to ensure instant updates ────────────────────
+# ── JS / CSS — no-store forces Cloudflare zone TTL to NOT override ────────────
+# Cloudflare ignores no-cache on static assets, but respects no-store.
+# This ensures app.js and style.css are NEVER cached — browser always fetches fresh.
 /app.js
-  Cache-Control: no-cache, must-revalidate
+  Cache-Control: no-store
 /style.css
-  Cache-Control: no-cache, must-revalidate
+  Cache-Control: no-store
 
 # ── Static assets — long cache with immutable ────────────────────────────────
 /assets/*
