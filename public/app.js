@@ -942,6 +942,83 @@ async function fetchAppUpdate() {
   } catch {}
 }
 
+// ─── PREMIUM INTERACTIONS ─────────────────────────────────────────────────────
+function initPremiumInteractions() {
+  // 1. Reveal on scroll (IntersectionObserver)
+  const revealElements = document.querySelectorAll('.reveal');
+  const revealObserver = new IntersectionObserver((entries, observer) => {
+    entries.forEach(entry => {
+      if (entry.isIntersecting) {
+        entry.target.classList.add('visible');
+        observer.unobserve(entry.target);
+      }
+    });
+  }, { threshold: 0.15, rootMargin: '0px 0px -50px 0px' });
+  revealElements.forEach(el => revealObserver.observe(el));
+
+  // 2. CountUp stats animation
+  const countUpElements = document.querySelectorAll('.hs-val');
+  const countObserver = new IntersectionObserver((entries, observer) => {
+    entries.forEach(entry => {
+      if (entry.isIntersecting) {
+        const el = entry.target;
+        const targetVal = parseInt(el.getAttribute('data-target'), 10) || 0;
+        let count = 0;
+        const duration = 1500; // ms
+        const frameRate = 1000 / 60; // 60fps
+        const totalFrames = duration / frameRate;
+        const increment = targetVal / totalFrames;
+
+        const animate = () => {
+          count += increment;
+          if (count >= targetVal) {
+            el.textContent = targetVal.toLocaleString();
+          } else {
+            el.textContent = Math.floor(count).toLocaleString();
+            requestAnimationFrame(animate);
+          }
+        };
+        requestAnimationFrame(animate);
+        observer.unobserve(el);
+      }
+    });
+  }, { threshold: 0.2 });
+  countUpElements.forEach(el => countObserver.observe(el));
+
+  // 3. Bento Card Mouse Parallax
+  const cards = document.querySelectorAll('.bento-card');
+  cards.forEach(card => {
+    card.addEventListener('mousemove', e => {
+      const rect = card.getBoundingClientRect();
+      const x = e.clientX - rect.left; // x position within element
+      const y = e.clientY - rect.top;  // y position within element
+      const centerX = rect.width / 2;
+      const centerY = rect.height / 2;
+      const rotateX = ((centerY - y) / centerY) * 4; // limit rotation to 4 degrees
+      const rotateY = ((x - centerX) / centerX) * 4;
+
+      card.style.transform = `perspective(1000px) rotateX(${rotateX}deg) rotateY(${rotateY}deg) translateY(-3px)`;
+      
+      // Dynamic shine gradient
+      const glow = card.querySelector('.bento-glow');
+      if (glow) {
+        glow.style.top = `${y - 80}px`;
+        glow.style.left = `${x - 80}px`;
+      }
+    });
+
+    card.addEventListener('mouseleave', () => {
+      card.style.transform = 'perspective(1000px) rotateX(0deg) rotateY(0deg) translateY(0px)';
+      const glow = card.querySelector('.bento-glow');
+      if (glow) {
+        glow.style.top = '0px';
+        glow.style.left = 'none';
+        glow.style.right = '0px';
+      }
+    });
+  });
+}
+
 // ─── INIT ─────────────────────────────────────────────────────────────────────
 function init() {
   document.getElementById('copy-year').textContent = new Date().getFullYear();
@@ -955,7 +1032,19 @@ function init() {
   renderEpgTabs();
   renderChannelGrid();
   renderFaq();
-  fetchAppUpdate();
+
+  // Defer non-critical tasks to requestIdleCallback for better performance
+  if ('requestIdleCallback' in window) {
+    requestIdleCallback(() => {
+      fetchAppUpdate();
+      initPremiumInteractions();
+    });
+  } else {
+    setTimeout(() => {
+      fetchAppUpdate();
+      initPremiumInteractions();
+    }, 200);
+  }
 
   // Load first channel
   loadChannel(CHANNELS[0]);
