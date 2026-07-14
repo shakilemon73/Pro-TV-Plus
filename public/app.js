@@ -796,7 +796,7 @@ function playParsedChannel(idx) {
 }
 
 // ─── APK SECTION ─────────────────────────────────────────────────────────────
-const DEFAULT_APK = 'https://www.dropbox.com/scl/fi/y0rgfej2zu7dxtsp327oz/ProPlusTV.apk?rlkey=j4zb93tz1euyesqep4vxnbric&st=0awipfzl&dl=0';
+const DEFAULT_APK = 'https://www.dropbox.com/scl/fi/y0rgfej2zu7dxtsp327oz/ProPlusTV.apk?rlkey=j4zb93tz1euyesqep4vxnbric&st=esvwmbwu&dl=1';
 
 function triggerApkDownload() {
   window.location.href = DEFAULT_APK;
