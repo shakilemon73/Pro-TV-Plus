@@ -410,9 +410,11 @@ function togglePlay() {
   if (state.isPlaying) {
     videoEl.play().catch(() => {});
     setOverlay('none');
+    showPlayerControls();
   } else {
     videoEl.pause();
     setOverlay('paused');
+    showPlayerControls(); // Keep controls visible when paused
   }
   updatePlayerUI();
 }
@@ -422,6 +424,7 @@ function toggleMute() {
   videoEl.muted = state.isMuted;
   videoEl.volume = state.isMuted ? 0 : 0.85;
   if (!state.isMuted) unmutePrompt.classList.add('hidden');
+  showPlayerControls();
   updatePlayerUI();
 }
 
@@ -435,6 +438,7 @@ function refreshStream() {
 function openQualityMenu() {
   document.getElementById('quality-menu').classList.add('open');
   document.getElementById('quality-backdrop').classList.add('open');
+  showPlayerControls();
 }
 function closeQualityMenu() {
   document.getElementById('quality-menu').classList.remove('open');
@@ -476,21 +480,139 @@ document.addEventListener('click', () => {
   }
 }, { passive: true });
 
-// ─── PLAYER TOUCH GESTURES ───────────────────────────────────────────────────
+// ─── ASPECT RATIO CYCLE & HUD NOTIFIER ───────────────────────────────────────
+function cycleAspectRatio() {
+  const modes = ['contain', 'cover', 'fill'];
+  const nextIdx = (modes.indexOf(state.aspectRatio) + 1) % modes.length;
+  state.aspectRatio = modes[nextIdx];
+  
+  videoEl.className = '';
+  videoEl.classList.add(`ar-${state.aspectRatio}`);
+  
+  const prettyModes = { contain: 'Letterbox (Contain)', cover: 'Zoom (Crop to Fill)', fill: 'Stretched (Fill)' };
+  showVideoHUDNotification(`Aspect Ratio: ${prettyModes[state.aspectRatio]}`);
+  showPlayerControls();
+}
+
+function showVideoHUDNotification(msg) {
+  const toast = document.getElementById('player-hud-toast');
+  if (!toast) return;
+  toast.textContent = msg;
+  toast.classList.add('visible');
+  
+  if (window.toastTimeout) clearTimeout(window.toastTimeout);
+  window.toastTimeout = setTimeout(() => {
+    toast.classList.remove('visible');
+  }, 2200);
+}
+
+// ─── OVERLAY HUD AUTO-HIDE LOOPS ─────────────────────────────────────────────
+function showPlayerControls() {
+  const vp = document.getElementById('player-vp');
+  if (!vp) return;
+  vp.classList.remove('controls-hidden');
+  state.isControlsVisible = true;
+  
+  if (state.controlsTimeout) clearTimeout(state.controlsTimeout);
+  
+  state.controlsTimeout = setTimeout(() => {
+    const qMenu = document.getElementById('quality-menu');
+    const isQMenuOpen = qMenu && qMenu.classList.contains('open');
+    if (state.streamActive && state.isPlaying && !isQMenuOpen) {
+      hidePlayerControls();
+    }
+  }, 3000);
+}
+
+function hidePlayerControls() {
+  const vp = document.getElementById('player-vp');
+  if (!vp) return;
+  vp.classList.add('controls-hidden');
+  state.isControlsVisible = false;
+  
+  const qMenu = document.getElementById('quality-menu');
+  if (qMenu) qMenu.classList.remove('open');
+  const backdrop = document.getElementById('quality-backdrop');
+  if (backdrop) backdrop.classList.remove('open');
+}
+
+// ─── PLAYER TOUCH & SWIPE GESTURES ───────────────────────────────────────────
 (function initPlayerGestures() {
   const vp = document.getElementById('player-vp');
   if (!vp) return;
+  
   let lastTap = 0;
   let tapTimer = null;
+  
+  // Touch Gestures variables
+  let touchStartX = 0;
+  let touchStartY = 0;
+  let isRightSide = false;
+
+  vp.addEventListener('touchstart', e => {
+    showPlayerControls();
+    if (e.touches.length === 1) {
+      touchStartX = e.touches[0].clientX;
+      touchStartY = e.touches[0].clientY;
+      const rect = vp.getBoundingClientRect();
+      isRightSide = (touchStartX - rect.left) > (rect.width / 2);
+    }
+  }, { passive: true });
+
+  vp.addEventListener('touchend', e => {
+    if (e.changedTouches.length === 1) {
+      const diffX = e.changedTouches[0].clientX - touchStartX;
+      const diffY = e.changedTouches[0].clientY - touchStartY;
+      
+      // Horizontal swipe to switch channels
+      if (Math.abs(diffX) > 120 && Math.abs(diffY) < 60) {
+        const activeIdx = CHANNELS.findIndex(c => c.name === state.selectedChannel.name);
+        if (activeIdx !== -1) {
+          if (diffX < 0) {
+            const nextIdx = (activeIdx + 1) % CHANNELS.length;
+            showVideoHUDNotification(`Tuning Next: ${CHANNELS[nextIdx].name}`);
+            loadChannel(CHANNELS[nextIdx]);
+          } else {
+            const prevIdx = (activeIdx - 1 + CHANNELS.length) % CHANNELS.length;
+            showVideoHUDNotification(`Tuning Previous: ${CHANNELS[prevIdx].name}`);
+            loadChannel(CHANNELS[prevIdx]);
+          }
+        }
+      }
+    }
+  }, { passive: true });
+
+  vp.addEventListener('touchmove', e => {
+    showPlayerControls();
+    if (e.touches.length === 1 && isRightSide) {
+      const diffY = e.touches[0].clientY - touchStartY;
+      if (Math.abs(diffY) > 30) {
+        const change = diffY > 0 ? -5 : 5; // drag down lowers, up raises
+        let newVol = Math.max(0, Math.min(100, (videoEl.volume * 100) + change));
+        videoEl.volume = newVol / 100;
+        state.isMuted = (newVol === 0);
+        videoEl.muted = state.isMuted;
+        
+        document.getElementById('vol-fill').style.width = newVol + '%';
+        showVideoHUDNotification(`Volume: ${Math.round(newVol)}%`);
+        touchStartY = e.touches[0].clientY; // Reset baseline clientY
+        updatePlayerUI();
+      }
+    }
+  }, { passive: true });
+
+  // Desktop Mouse controls revealing
+  vp.addEventListener('mousemove', () => {
+    showPlayerControls();
+  }, { passive: true });
 
   vp.addEventListener('click', e => {
-    // Ignore clicks on overlay buttons (retry, direct-link, unmute prompt)
-    if (e.target.closest('button, a, .unmute-prompt, .quality-btn, .icon-btn')) return;
+    if (e.target.closest('button, a, .unmute-prompt, .quality-btn, .icon-btn, .control-bar')) return;
 
     const now = Date.now();
     const DOUBLE_TAP_MS = 280;
     if (now - lastTap < DOUBLE_TAP_MS) {
-      // Double tap → fullscreen
+      // Double tap -> Fullscreen
       clearTimeout(tapTimer);
       lastTap = 0;
       goFullscreen();
@@ -498,15 +620,18 @@ document.addEventListener('click', () => {
       lastTap = now;
       tapTimer = setTimeout(() => {
         lastTap = 0;
-        // Single tap → toggle play/pause (if stream active) or unmute
-        if (state.isMuted && state.streamActive) {
-          toggleMute();
-        } else if (state.streamActive) {
-          togglePlay();
+        if (state.isControlsVisible) {
+          if (state.isMuted && state.streamActive) {
+            toggleMute();
+          } else if (state.streamActive) {
+            togglePlay();
+          }
+        } else {
+          showPlayerControls();
         }
       }, DOUBLE_TAP_MS);
     }
-  }, { passive: true });
+  });
 })();
 
 function goFullscreen() {
@@ -515,6 +640,17 @@ function goFullscreen() {
   const req = el.requestFullscreen || el.webkitRequestFullscreen || el.mozRequestFullScreen;
   if (req) req.call(el).catch(() => {});
 }
+
+// ─── NETWORK CONNECTION MONITOR ──────────────────────────────────────────────
+window.addEventListener('offline', () => {
+  showError('Your device went offline. Please check your internet connection.');
+});
+window.addEventListener('online', () => {
+  if (state.playbackError) {
+    showVideoHUDNotification('Connection Restored. Reloading Channel...');
+    refreshStream();
+  }
+});
 
 // ─── NAV ────────────────────────────────────────────────────────────────────
 document.getElementById('hamburger').addEventListener('click', () => {
