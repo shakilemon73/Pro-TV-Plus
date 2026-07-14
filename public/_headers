@@ -14,11 +14,11 @@
 /
   Cache-Control: no-cache, must-revalidate
 
-# ── JS / CSS — short cache (app changes frequently) ──────────────────────────
+# ── JS / CSS — always revalidate to ensure instant updates ────────────────────
 /app.js
-  Cache-Control: public, max-age=300, stale-while-revalidate=60
+  Cache-Control: no-cache, must-revalidate
 /style.css
-  Cache-Control: public, max-age=3600, stale-while-revalidate=300
+  Cache-Control: no-cache, must-revalidate
 
 # ── Static assets — long cache with immutable ────────────────────────────────
 /assets/*

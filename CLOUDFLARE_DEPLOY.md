@@ -156,8 +156,8 @@ Defined in `public/_headers`:
 | Resource | Cache |
 |---|---|
 | `index.html` | `no-cache` (always revalidate) |
-| `app.js` | 5 min + stale-while-revalidate |
-| `style.css` | 1 hour |
+| `app.js` | `no-cache` (always revalidate) |
+| `style.css` | `no-cache` (always revalidate) |
 | `assets/*` | 1 year immutable |
 | `/api/*` | `no-store` (never cached at CDN) |
 
@@ -195,8 +195,11 @@ Defined in `public/_headers`:
 
 ### ❌ Pages deploy succeeds but site shows old version
 
-**Cause:** Browser cache.  
-**Fix:** Hard-refresh (`Ctrl+Shift+R`). Cloudflare purges its CDN automatically on each deploy.
+**Cause:** Browser cache, or Cloudflare DNS/Proxy cache on the custom domain overriding Page headers.  
+**Fix:** 
+1. We updated `public/_headers` to set `Cache-Control: no-cache, must-revalidate` for `/app.js` and `/style.css`. Browsers will now verify with the server before using local cache.
+2. If using Cloudflare proxy (orange cloud) on your custom domain, make sure you don't have a **Page Rule** or **Cache Rule** (like *Cache Everything*) that overrides these headers.
+3. You can manually purge the CDN cache from the Cloudflare Dashboard under **Caching** -> **Configuration** -> **Purge Everything**.
 
 ---
 
