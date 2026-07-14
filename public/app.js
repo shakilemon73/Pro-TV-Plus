@@ -4,9 +4,9 @@
 const CHANNELS = [
   { id: 't-sports-hd', name: 'T Sports HD', logoUrl: 'https://raw.githubusercontent.com/itsmedmd/Playlists/master/logos/tsports.png', streamUrl: 'http://103.13.193.194:8082/T-SPORTS-HD/video.m3u8?token=RusriRM-L73G33', altStreams: ['http://114.130.57.233:8080/LIVE-Sports/video.m3u8?token=SkQuhAXZxgBan1'], category: 'sports', isLive: true, nowPlaying: 'FIFA World Cup 2026 Qualifiers', nowPlayingDetails: 'Live stream of FIFA World Cup 2026 matches. Comprehensive broadcast coverage and live professional commentary.', nextPlaying: 'Live EPG Show & World Sports Highlights', nowPlayingProgress: 40, resolution: '1080p HD', bitrate: '5.5 Mbps' },
   { id: 'fs1', name: 'FS1 (FOX Sports 1)', logoUrl: 'https://raw.githubusercontent.com/dtv-history/Live-TV/main/Logos/FS1.png', streamUrl: 'http://fortv.cc:8080/live/parks@prudent.com/0314@8162/1846.ts', category: 'sports', isLive: true, nowPlaying: 'FOX Sports Live Coverage', nowPlayingDetails: 'Live US sports coverage including NFL, MLB, NASCAR, UFC, and college football on FOX Sports 1.', nextPlaying: 'FOX Sports Postgame Analysis', nowPlayingProgress: 35, resolution: '1080p HD', bitrate: '4.8 Mbps' },
-  { id: 'star-sports', name: 'Star Sports', logoUrl: 'https://upload.wikimedia.org/wikipedia/commons/thumb/1/1e/Star_Sports_logo.svg/512px-Star_Sports_logo.svg.png', streamUrl: 'https://test-streams.mux.dev/x36xhg/main.m3u8', category: 'sports', isLive: true, nowPlaying: 'ICC World Cup: Australia vs India', nowPlayingDetails: 'Live from Narendra Modi Stadium. Comprehensive live coverage and expert analysis.', nextPlaying: 'Cricket Tonight - Match Highlights', nowPlayingProgress: 68, resolution: '1080p Full HD', bitrate: '5.2 Mbps' },
-  { id: 'ptv-sports', name: 'PTV Sports', logoUrl: 'https://upload.wikimedia.org/wikipedia/commons/thumb/d/de/PTV_Sports_logo.svg/512px-PTV_Sports_logo.svg.png', streamUrl: 'https://demo.unified-streaming.com/k8s/features/stable/video/tears-of-steel/tears-of-steel.ism/.m3u8', category: 'sports', isLive: true, nowPlaying: 'T20 Cricket Blast Live', nowPlayingDetails: 'High-octane short-format cricket action with live audience telemetry.', nextPlaying: 'Sports Hour Analysis', nowPlayingProgress: 42, resolution: '1080p HD', bitrate: '4.8 Mbps' },
-  { id: 'somoy-tv', name: 'Somoy TV', logoUrl: 'https://upload.wikimedia.org/wikipedia/commons/thumb/a/a6/Somoy_TV_Logo.png/512px-Somoy_TV_Logo.png', streamUrl: 'https://cph-p2p-msl.akamaized.net/hls/live/2000341/test/master.m3u8', category: 'bangla', isLive: true, nowPlaying: 'Somoy News Bulletin', nowPlayingDetails: 'Breaking news and direct live coverage of regional, national and international events.', nextPlaying: 'Business & Economy Round', nowPlayingProgress: 85, resolution: '720p HD', bitrate: '3.1 Mbps' },
+  { id: 'tsn-hd', name: 'TSN-HD', logoUrl: 'https://www.advanced-television.com/wp-content/uploads/2024/09/TSNcanada.png', streamUrl: 'http://85.237.89.160:9590/usa-s/TSN-HD-1/index.m3u8', category: 'sports', isLive: true, nowPlaying: 'ICC World Cup: Australia vs India', nowPlayingDetails: 'Live from Narendra Modi Stadium. Comprehensive live coverage and expert analysis.', nextPlaying: 'Cricket Tonight - Match Highlights', nowPlayingProgress: 68, resolution: '1080p Full HD', bitrate: '5.2 Mbps' },
+  { id: 'ptv-sports', name: 'PTV Sports', logoUrl: 'https://upload.wikimedia.org/wikipedia/commons/thumb/d/de/PTV_Sports_logo.svg/512px-PTV_Sports_logo.svg.png', streamUrl: 'http://starhub.pro/live/farhat-3379/67897-913379/89.ts', category: 'sports', isLive: true, nowPlaying: 'T20 Cricket Blast Live', nowPlayingDetails: 'High-octane short-format cricket action with live audience telemetry.', nextPlaying: 'Sports Hour Analysis', nowPlayingProgress: 42, resolution: '1080p HD', bitrate: '4.8 Mbps' },
+  { id: 'somoy-tv', name: 'Somoy TV', logoUrl: 'https://upload.wikimedia.org/wikipedia/commons/thumb/a/a6/Somoy_TV_Logo.png/512px-Somoy_TV_Logo.png', streamUrl: 'https://live.thebosstv.com:30443/dwlive/Somoy-TV/chunks.m3u8', category: 'bangla', isLive: true, nowPlaying: 'Somoy News Bulletin', nowPlayingDetails: 'Breaking news and direct live coverage of regional, national and international events.', nextPlaying: 'Business & Economy Round', nowPlayingProgress: 85, resolution: '720p HD', bitrate: '3.1 Mbps' },
   { id: 'jamuna-tv', name: 'Jamuna TV', logoUrl: 'https://upload.wikimedia.org/wikipedia/commons/thumb/e/e0/Jamuna_Television_logo.png/512px-Jamuna_Television_logo.png', streamUrl: 'https://playertest.longtailvideo.com/adaptive/vod/playlist.m3u8', category: 'bangla', isLive: true, nowPlaying: 'Jamuna Prime Time News', nowPlayingDetails: 'Analytical news broadcast with specialized reports from local correspondents.', nextPlaying: 'Investigation 360', nowPlayingProgress: 15, resolution: '1080p HD', bitrate: '4.5 Mbps' },
   { id: 'zee-bangla', name: 'Zee Bangla', logoUrl: 'https://upload.wikimedia.org/wikipedia/commons/thumb/e/e7/Zee_Bangla_logo.svg/512px-Zee_Bangla_logo.svg.png', streamUrl: 'https://res.cloudinary.com/dvr7v6g7u/video/upload/sp_auto/v1/sample_folder/sample.m3u8', category: 'bangla', isLive: true, nowPlaying: 'Didi No. 1 - Season 9', nowPlayingDetails: 'Popular reality show celebrating the resilience and talent of modern women.', nextPlaying: 'Mithai - Evening Mega Serial', nowPlayingProgress: 50, resolution: '1080p HD', bitrate: '3.8 Mbps' },
   { id: 'star-jalsha', name: 'Star Jalsha', logoUrl: 'https://upload.wikimedia.org/wikipedia/commons/thumb/a/ab/Star_Jalsha_logo.svg/512px-Star_Jalsha_logo.svg.png', streamUrl: 'https://playertest.longtailvideo.com/adaptive/art-of-motion/manifest.m3u8', category: 'bangla', isLive: true, nowPlaying: 'Anurager Chowa', nowPlayingDetails: 'Captivating family drama tracing complex relationship bonds and social challenges.', nextPlaying: 'Ke Prothom Kache Eshechi', nowPlayingProgress: 30, resolution: '1080p HD', bitrate: '4.0 Mbps' },
@@ -153,11 +153,13 @@ function loadChannel(channel) {
   const allStreams = [channel.streamUrl, ...(channel.altStreams || [])];
   let altIndex = 0;
 
-  function resolveSource(rawUrl) {
-    const isHttps = location.protocol === 'https:';
-    const isHttp  = rawUrl.startsWith('http://');
-    return (isHttps && isHttp) ? `/api/proxy?url=${encodeURIComponent(rawUrl)}` : rawUrl;
-  }
+  const RELAY_PROXY = 'https://snowy-perch-1699.shakilemon73.deno.net/?url=';
+
+function resolveSource(rawUrl) {
+  const isHttps = location.protocol === 'https:';
+  const isHttp  = rawUrl.startsWith('http://');
+  return (isHttps && isHttp) ? `${RELAY_PROXY}${encodeURIComponent(rawUrl)}` : rawUrl;
+}
 
   function failover(reason) {
     altIndex++;
@@ -794,7 +796,7 @@ function playParsedChannel(idx) {
 }
 
 // ─── APK SECTION ─────────────────────────────────────────────────────────────
-const DEFAULT_APK = 'https://www.dropbox.com/scl/fi/jqizyd1z758rq4fs5zpxu/protvplus.apk?rlkey=qsu1dt1fxg5vue17mgi4l7d9u&st=j2h9b0qa&dl=1';
+const DEFAULT_APK = 'https://www.dropbox.com/scl/fi/y0rgfej2zu7dxtsp327oz/ProPlusTV.apk?rlkey=j4zb93tz1euyesqep4vxnbric&st=0awipfzl&dl=0';
 
 function triggerApkDownload() {
   window.location.href = DEFAULT_APK;
