@@ -32,11 +32,29 @@ export default function VideoPlayer({ channel, onRefresh }: VideoPlayerProps) {
   const isStreamHttp = channel?.streamUrl?.startsWith('http://');
   const hasMixedContentRisk = isHttps && isStreamHttp;
 
-  const [useProxy, setUseProxy] = useState(false);
+  const [useProxy, setUseProxy] = useState(hasMixedContentRisk);
 
   useEffect(() => {
     setUseProxy(hasMixedContentRisk);
   }, [channel?.id, hasMixedContentRisk]);
+
+  // Page-level tap to unmute autoplay helper
+  useEffect(() => {
+    const handlePageClick = () => {
+      const video = videoRef.current;
+      if (video && isMuted && streamActive && !playbackError) {
+        console.log('Unmuting stream on page-level user interaction...');
+        setIsMuted(false);
+      }
+    };
+
+    document.addEventListener('click', handlePageClick, { passive: true });
+    document.addEventListener('touchstart', handlePageClick, { passive: true });
+    return () => {
+      document.removeEventListener('click', handlePageClick);
+      document.removeEventListener('touchstart', handlePageClick);
+    };
+  }, [isMuted, streamActive, playbackError]);
 
   // Hls stream loader effect
   useEffect(() => {

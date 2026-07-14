@@ -137,24 +137,52 @@ export default function ApkSection({ onDownloadTrigger }: { onDownloadTrigger?: 
           </div>
 
             {/* Download triggers */}
-          <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-4 pt-3">
-            <a
-              href="https://storage.to/lt4gxqlNq"
-              target="_blank"
-              rel="noopener noreferrer"
-              className="px-8 py-4 rounded-xl bg-[#007ee5] hover:bg-[#006cc8] text-white font-bold text-base transition-all flex items-center justify-center gap-3 shadow-lg shadow-blue-500/20 active:scale-95 text-center cursor-pointer"
-            >
-              <Download size={20} />
-              Download APK
-            </a>
+          <div className="space-y-4 pt-3">
+            <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-4">
+              <button
+                onClick={triggerDownload}
+                className="px-8 py-4 rounded-xl bg-primary-red hover:bg-primary-red/90 text-white font-bold text-base transition-all flex items-center justify-center gap-3 shadow-lg shadow-primary-red/20 active:scale-95 text-center cursor-pointer font-display uppercase tracking-wider"
+              >
+                <Download size={20} className={downloading ? "animate-bounce" : ""} />
+                Secure Download (GitHub)
+              </button>
 
-            <button
-              onClick={copyShareLink}
-              className="px-6 py-4 rounded-xl bg-[#131313] border border-neutral-800 hover:border-neutral-700 text-neutral-300 hover:text-white transition-all flex items-center justify-center gap-2 font-semibold text-sm cursor-pointer"
-            >
-              <Share2 size={16} />
-              {copiedLink ? 'Copied URL!' : 'Share Mirror Link'}
-            </button>
+              <button
+                onClick={copyShareLink}
+                className="px-6 py-4 rounded-xl bg-[#131313] border border-neutral-800 hover:border-neutral-700 text-neutral-300 hover:text-white transition-all flex items-center justify-center gap-2 font-semibold text-sm cursor-pointer"
+              >
+                <Share2 size={16} />
+                {copiedLink ? 'Copied URL!' : 'Share Download Link'}
+              </button>
+            </div>
+
+            {/* Alternative Mirrors */}
+            <div className="space-y-2 pt-2 border-t border-neutral-900/60">
+              <p className="text-[10px] font-mono font-bold text-neutral-500 uppercase tracking-widest">
+                Alternative Mirrors & Direct Redirections:
+              </p>
+              <div className="flex flex-wrap gap-3">
+                <a
+                  href="https://www.dropbox.com/scl/fi/jqizyd1z758rq4fs5zpxu/protvplus.apk?rlkey=qsu1dt1fxg5vue17mgi4l7d9u&st=u0te745i&dl=1"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="px-4 py-2.5 rounded-lg bg-[#007ee5]/10 hover:bg-[#007ee5]/20 border border-[#007ee5]/20 text-[#007ee5] hover:text-blue-400 font-bold text-xs transition-all flex items-center gap-2 cursor-pointer"
+                >
+                  <Download size={14} />
+                  Dropbox Direct Mirror
+                </a>
+
+                <a
+                  href="https://storage.to/lt4gxqlNq"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="px-4 py-2.5 rounded-lg bg-[#00a2fd]/10 hover:bg-[#00a2fd]/20 border border-[#00a2fd]/20 text-[#00a2fd] hover:text-blue-300 font-bold text-xs transition-all flex items-center gap-2 cursor-pointer"
+                >
+                  <Download size={14} />
+                  Storage.to Redirect
+                </a>
+              </div>
+            </div>
           </div>
 
           {/* Android Special Unknown App installation Instruction block */}
