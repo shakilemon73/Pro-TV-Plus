@@ -153,11 +153,13 @@ function loadChannel(channel) {
   const allStreams = [channel.streamUrl, ...(channel.altStreams || [])];
   let altIndex = 0;
 
-  function resolveSource(rawUrl) {
-    const isHttps = location.protocol === 'https:';
-    const isHttp  = rawUrl.startsWith('http://');
-    return (isHttps && isHttp) ? `/api/proxy?url=${encodeURIComponent(rawUrl)}` : rawUrl;
-  }
+  const RELAY_PROXY = 'https://snowy-perch-1699.shakilemon73.deno.net/?url=';
+
+function resolveSource(rawUrl) {
+  const isHttps = location.protocol === 'https:';
+  const isHttp  = rawUrl.startsWith('http://');
+  return (isHttps && isHttp) ? `${RELAY_PROXY}${encodeURIComponent(rawUrl)}` : rawUrl;
+}
 
   function failover(reason) {
     altIndex++;
