@@ -40,15 +40,54 @@ export default function EPGSchedule({
   // Fetch Favorites and Recents on mount & active stream update
   const fetchFavoritesAndHistory = async () => {
     try {
-      const favRes = await fetch('/api/favorites');
-      if (favRes.ok) {
-        const favData = await favRes.json();
-        setFavorites(favData);
+      // 1. Initialize from localStorage
+      const localFavsRaw = localStorage.getItem('protv_local_favorites');
+      let localFavs = localFavsRaw ? JSON.parse(localFavsRaw) : [];
+      setFavorites(localFavs);
+
+      const localHistRaw = localStorage.getItem('protv_local_history');
+      let localHist = localHistRaw ? JSON.parse(localHistRaw) : [];
+      setHistory(localHist);
+
+      // 2. Try fetching from server API and merge/sync
+      try {
+        const favRes = await fetch('/api/favorites');
+        if (favRes.ok) {
+          const favData = await favRes.json();
+          // Merge server favorites with local favorites
+          let mergedFavs = [...localFavs];
+          favData.forEach((sf: any) => {
+            if (!mergedFavs.some((f: any) => f.id === sf.id || f.streamUrl === sf.streamUrl)) {
+              mergedFavs.push(sf);
+            }
+          });
+          setFavorites(mergedFavs);
+          localStorage.setItem('protv_local_favorites', JSON.stringify(mergedFavs));
+        }
+      } catch (e) {
+        console.warn('API favorites sync not available:', e);
       }
-      const histRes = await fetch('/api/history');
-      if (histRes.ok) {
-        const histData = await histRes.json();
-        setHistory(histData);
+
+      try {
+        const histRes = await fetch('/api/history');
+        if (histRes.ok) {
+          const histData = await histRes.json();
+          // Merge server history with local history
+          let mergedHist = [...localHist];
+          histData.forEach((sh: any) => {
+            if (!mergedHist.some((h: any) => h.id === sh.id || h.streamUrl === sh.streamUrl)) {
+              mergedHist.push(sh);
+            }
+          });
+          // Limit to 25 items
+          if (mergedHist.length > 25) {
+            mergedHist = mergedHist.slice(0, 25);
+          }
+          setHistory(mergedHist);
+          localStorage.setItem('protv_local_history', JSON.stringify(mergedHist));
+        }
+      } catch (e) {
+        console.warn('API history sync not available:', e);
       }
     } catch (e) {
       console.error('Error synchronizing favorites or history from server:', e);
@@ -63,29 +102,37 @@ export default function EPGSchedule({
   const toggleFavorite = async (chan: Channel, e: React.MouseEvent) => {
     e.stopPropagation();
     triggerHaptic(HAPTIC_PATTERNS.softClick);
-    const isFav = favorites.some(f => f.id === chan.id || f.streamUrl === chan.streamUrl);
     
+    // Get current local favorites
+    const localFavsRaw = localStorage.getItem('protv_local_favorites');
+    let localFavs = localFavsRaw ? JSON.parse(localFavsRaw) : [];
+    
+    const isFav = localFavs.some((f: any) => f.id === chan.id || f.streamUrl === chan.streamUrl);
+    let updatedFavs = [];
+
+    if (isFav) {
+      updatedFavs = localFavs.filter((f: any) => f.id !== chan.id && f.streamUrl !== chan.streamUrl);
+    } else {
+      updatedFavs = [...localFavs, chan];
+    }
+
+    // Instantly update UI and localStorage
+    setFavorites(updatedFavs);
+    localStorage.setItem('protv_local_favorites', JSON.stringify(updatedFavs));
+
     try {
       if (isFav) {
-        const idToRemove = favorites.find(f => f.id === chan.id || f.streamUrl === chan.streamUrl)?.id || chan.id;
-        const res = await fetch(`/api/favorites/${encodeURIComponent(idToRemove)}`, { method: 'DELETE' });
-        if (res.ok) {
-          const updated = await res.json();
-          setFavorites(updated);
-        }
+        const idToRemove = localFavs.find((f: any) => f.id === chan.id || f.streamUrl === chan.streamUrl)?.id || chan.id;
+        await fetch(`/api/favorites/${encodeURIComponent(idToRemove)}`, { method: 'DELETE' });
       } else {
-        const res = await fetch('/api/favorites', {
+        await fetch('/api/favorites', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify(chan)
         });
-        if (res.ok) {
-          const updated = await res.json();
-          setFavorites(updated);
-        }
       }
     } catch (err) {
-      console.error('Failed to toggle favorite on server:', err);
+      console.warn('Failed to toggle favorite on server:', err);
     }
   };
 

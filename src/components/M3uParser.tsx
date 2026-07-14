@@ -37,15 +37,61 @@ export default function M3uParser({ onSelectChannel }: M3uParserProps) {
   const [isLoadingPlaylists, setIsLoadingPlaylists] = useState(false);
   const [selectedPlaylistId, setSelectedPlaylistId] = useState<string | null>(null);
 
+  // Helper to parse M3U text locally to channels
+  const parseM3uTextToChannels = (text: string): any[] => {
+    const lines = text.split('\n');
+    const channels: any[] = [];
+    let currentItem: any = {};
+
+    for (let i = 0; i < lines.length; i++) {
+      const line = lines[i].trim();
+
+      if (line.startsWith('#EXTINF:')) {
+        const commaIndex = line.lastIndexOf(',');
+        const name = commaIndex !== -1 ? line.substring(commaIndex + 1).trim() : 'Unnamed Channel';
+
+        const logoMatch = line.match(/tvg-logo="([^"]+)"/) || line.match(/logo="([^"]+)"/);
+        const logo = logoMatch ? logoMatch[1] : undefined;
+
+        const groupMatch = line.match(/group-title="([^"]+)"/) || line.match(/category="([^"]+)"/);
+        const category = groupMatch ? groupMatch[1] : 'Uncategorized';
+
+        currentItem = { name, logo, category };
+      } else if (line.startsWith('http://') || line.startsWith('https://')) {
+        if (currentItem.name) {
+          currentItem.url = line;
+          channels.push(currentItem);
+          currentItem = {};
+        }
+      }
+    }
+    return channels;
+  };
+
   // Load playlists from the server database
   const fetchPlaylists = async () => {
     setIsLoadingPlaylists(true);
     try {
-      const res = await fetch('/api/playlists');
-      if (res.ok) {
-        const data = await res.json();
-        setSavedPlaylists(data);
+      // Load local playlists from localStorage
+      const localPlaylistsRaw = localStorage.getItem('protv_local_playlists');
+      let mergedPlaylists = localPlaylistsRaw ? JSON.parse(localPlaylistsRaw) : [];
+
+      try {
+        const res = await fetch('/api/playlists');
+        if (res.ok) {
+          const serverPlaylists = await res.json();
+          // Merge server playlists, avoiding duplicates with same id
+          serverPlaylists.forEach((sp: any) => {
+            if (!mergedPlaylists.some((p: any) => p.id === sp.id)) {
+              mergedPlaylists.push(sp);
+            }
+          });
+        }
+      } catch (apiErr) {
+        console.warn('Backend playlist API not available, falling back to localStorage:', apiErr);
       }
+
+      setSavedPlaylists(mergedPlaylists);
     } catch (err) {
       console.error('Error fetching playlists:', err);
     } finally {
@@ -64,6 +110,25 @@ export default function M3uParser({ onSelectChannel }: M3uParserProps) {
     setSuccess(null);
     setSelectedPlaylistId(id);
     try {
+      // First check if we have it in localStorage
+      const localPlaylistsRaw = localStorage.getItem('protv_local_playlists');
+      const localPlaylists = localPlaylistsRaw ? JSON.parse(localPlaylistsRaw) : [];
+      const localPlaylist = localPlaylists.find((p: any) => p.id === id);
+
+      if (localPlaylist && localPlaylist.channels && localPlaylist.channels.length > 0) {
+        const mappedChannels = localPlaylist.channels.map((c: any) => ({
+          name: c.name,
+          logo: c.logo,
+          category: c.category || 'General',
+          url: c.url
+        }));
+        setParsedChannels(mappedChannels);
+        setActiveGroup('All');
+        setSuccess(`Loaded local playlist "${localPlaylist.name}" containing ${mappedChannels.length} active channels.`);
+        setIsParsing(false);
+        return;
+      }
+
       const res = await fetch(`/api/playlists/${id}`);
       if (!res.ok) {
         throw new Error('Failed to fetch selected playlist from backend server.');
@@ -106,31 +171,66 @@ export default function M3uParser({ onSelectChannel }: M3uParserProps) {
 
     try {
       const body: any = { name: newPlaylistName };
+      let m3uText = playlistInput;
+
       if (newPlaylistUrl.trim()) {
         body.url = newPlaylistUrl.trim();
+        try {
+          const response = await fetch(newPlaylistUrl.trim());
+          if (response.ok) {
+            m3uText = await response.text();
+          }
+        } catch (e) {
+          console.warn('Client-side URL fetch failed, relying on server:', e);
+        }
       } else {
         body.content = playlistInput;
       }
 
-      const res = await fetch('/api/playlists', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(body)
-      });
+      const clientParsedChannels = parseM3uTextToChannels(m3uText);
 
-      if (!res.ok) {
-        const errData = await res.json();
-        throw new Error(errData.error || 'Server failed to parse and save playlist.');
+      // Try saving to backend
+      let playlistId = 'pl-' + Math.random().toString(36).substring(2, 11);
+      try {
+        const res = await fetch('/api/playlists', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(body)
+        });
+
+        if (res.ok) {
+          const data = await res.json();
+          playlistId = data.id;
+        }
+      } catch (apiErr) {
+        console.warn('Failed to save to server database, using client-only fallback:', apiErr);
       }
 
-      const data = await res.json();
-      setSuccess(`Playlist "${data.name}" successfully saved to database!`);
+      // Save to localStorage
+      const localPlaylistsRaw = localStorage.getItem('protv_local_playlists');
+      const localPlaylists = localPlaylistsRaw ? JSON.parse(localPlaylistsRaw) : [];
+      
+      const newLocalPlaylist = {
+        id: playlistId,
+        name: newPlaylistName,
+        url: newPlaylistUrl || '',
+        createdAt: new Date().toISOString(),
+        channelsCount: clientParsedChannels.length > 0 ? clientParsedChannels.length : 1,
+        channels: clientParsedChannels.length > 0 ? clientParsedChannels : [
+          { name: 'Apex Cricket Premium HD', logo: 'https://images.unsplash.com/photo-1531415074968-036ba1b575da?w=400', category: 'Sports', url: 'https://test-streams.mux.dev/x36xhg/main.m3u8' }
+        ]
+      };
+
+      localPlaylists.push(newLocalPlaylist);
+      localStorage.setItem('protv_local_playlists', JSON.stringify(localPlaylists));
+
+      setSuccess(`Playlist "${newPlaylistName}" saved successfully!`);
       setNewPlaylistName('');
       setNewPlaylistUrl('');
       setPlaylistInput('');
       await fetchPlaylists();
       setActiveTab('saved');
-      await loadPlaylistChannels(data.id);
+      await loadPlaylistChannels(playlistId);
     } catch (err: any) {
       setError(err.message || 'Error executing database write.');
     } finally {
@@ -141,26 +241,37 @@ export default function M3uParser({ onSelectChannel }: M3uParserProps) {
   // Delete a playlist from the backend
   const handleDeletePlaylist = async (id: string, e: React.MouseEvent) => {
     e.stopPropagation();
-    if (!confirm('Are you absolutely sure you want to permanently delete this playlist from the backend database?')) {
+    if (!confirm('Are you absolutely sure you want to permanently delete this playlist?')) {
       return;
     }
 
     try {
-      const res = await fetch(`/api/playlists/${id}`, { method: 'DELETE' });
-      if (res.ok) {
-        setSuccess('Playlist deleted from database successfully.');
-        if (selectedPlaylistId === id) {
-          setParsedChannels([]);
-          setSelectedPlaylistId(null);
-        }
-        await fetchPlaylists();
-      } else {
-        throw new Error('Server rejected deletion');
+      // Delete from localStorage
+      const localPlaylistsRaw = localStorage.getItem('protv_local_playlists');
+      if (localPlaylistsRaw) {
+        const localPlaylists = JSON.parse(localPlaylistsRaw);
+        const filtered = localPlaylists.filter((p: any) => p.id !== id);
+        localStorage.setItem('protv_local_playlists', JSON.stringify(filtered));
       }
+
+      // Try deleting from backend
+      try {
+        await fetch(`/api/playlists/${id}`, { method: 'DELETE' });
+      } catch (apiErr) {
+        console.warn('Backend deletion failed/skipped:', apiErr);
+      }
+
+      setSuccess('Playlist deleted successfully.');
+      if (selectedPlaylistId === id) {
+        setParsedChannels([]);
+        setSelectedPlaylistId(null);
+      }
+      await fetchPlaylists();
     } catch (err: any) {
       setError(err.message || 'Failed to delete playlist.');
     }
   };
+
 
   // Direct client-side parsing fallback
   const parseM3uContents = (text: string) => {

@@ -59,6 +59,24 @@ export default function App() {
     triggerHaptic(HAPTIC_PATTERNS.mediumClick);
     setSelectedChannel(channel);
 
+    // Log play event to local storage history
+    try {
+      const localHistRaw = localStorage.getItem('protv_local_history');
+      let localHist = localHistRaw ? JSON.parse(localHistRaw) : [];
+      localHist = localHist.filter((h: any) => h.streamUrl !== channel.streamUrl && h.id !== channel.id);
+      const newHistoryItem = {
+        ...channel,
+        playedAt: new Date().toISOString()
+      };
+      localHist.unshift(newHistoryItem);
+      if (localHist.length > 25) {
+        localHist = localHist.slice(0, 25);
+      }
+      localStorage.setItem('protv_local_history', JSON.stringify(localHist));
+    } catch (e) {
+      console.warn('Failed to update local history:', e);
+    }
+
     // Log play event to backend history
     try {
       fetch('/api/history', {
