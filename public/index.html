@@ -393,6 +393,26 @@
           <span class="player-info-sep">|</span>
           <span style="color:rgba(255,255,255,.3)">Hardware Accel Enabled</span>
         </div>
+
+        <!-- Horizontal Channel List -->
+        <div class="channel-strip">
+          <div class="channel-strip-header">
+            <span class="channel-strip-title">Quick Channels</span>
+            <div class="channel-strip-nav">
+              <button class="channel-nav-btn" id="channel-scroll-left">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="15 18 9 12 15 6"/></svg>
+              </button>
+              <button class="channel-nav-btn" id="channel-scroll-right">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="9 18 15 12 9 6"/></svg>
+              </button>
+            </div>
+          </div>
+          <div class="channel-scroll-container" id="channel-scroll-container">
+            <div class="channel-list-horizontal" id="channel-list-horizontal">
+              <!-- Channels will be populated by JavaScript -->
+            </div>
+          </div>
+        </div>
       </div>
 
     </div>

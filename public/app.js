@@ -1295,6 +1295,112 @@ function closeDownload() {
   document.getElementById('dl-overlay').classList.remove('open');
 }
 
+// ─── HORIZONTAL CHANNEL LIST ─────────────────────────────────────────────────────
+function initHorizontalChannelList() {
+  const container = document.getElementById('channel-list-horizontal');
+  if (!container) return;
+
+  // Clear existing content
+  container.innerHTML = '';
+
+  // Populate with channels
+  CHANNELS.forEach(channel => {
+    const card = document.createElement('div');
+    card.className = 'channel-card-horizontal';
+    card.dataset.channelId = channel.id;
+    
+    // Create logo container
+    const logoContainer = document.createElement('div');
+    logoContainer.className = 'channel-logo-horizontal';
+    
+    if (channel.logoUrl) {
+      const img = document.createElement('img');
+      img.src = channel.logoUrl;
+      img.alt = channel.name;
+      img.onerror = () => {
+        logoContainer.innerHTML = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="7" width="20" height="15" rx="2"/><polyline points="17 2 12 7 7 2"/></svg>`;
+      };
+      logoContainer.appendChild(img);
+    } else {
+      logoContainer.innerHTML = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="7" width="20" height="15" rx="2"/><polyline points="17 2 12 7 7 2"/></svg>`;
+    }
+
+    // Create name
+    const name = document.createElement('div');
+    name.className = 'channel-name-horizontal';
+    name.textContent = channel.name;
+
+    // Create category
+    const category = document.createElement('div');
+    category.className = 'channel-category-horizontal';
+    category.textContent = channel.category;
+
+    card.appendChild(logoContainer);
+    card.appendChild(name);
+    card.appendChild(category);
+
+    // Click handler
+    card.addEventListener('click', () => {
+      loadChannel(channel);
+      updateActiveChannelCard(channel.id);
+    });
+
+    container.appendChild(card);
+  });
+
+  // Set initial active state
+  updateActiveChannelCard(state.selectedChannel.id);
+
+  // Setup scroll navigation
+  setupScrollNavigation();
+}
+
+function updateActiveChannelCard(channelId) {
+  const cards = document.querySelectorAll('.channel-card-horizontal');
+  cards.forEach(card => {
+    if (card.dataset.channelId === channelId) {
+      card.classList.add('active');
+      // Scroll into view
+      card.scrollIntoView({ behavior: 'smooth', inline: 'center', block: 'nearest' });
+    } else {
+      card.classList.remove('active');
+    }
+  });
+}
+
+function setupScrollNavigation() {
+  const container = document.getElementById('channel-scroll-container');
+  const list = document.getElementById('channel-list-horizontal');
+  const leftBtn = document.getElementById('channel-scroll-left');
+  const rightBtn = document.getElementById('channel-scroll-right');
+
+  if (!container || !list || !leftBtn || !rightBtn) return;
+
+  const scrollAmount = 300;
+
+  leftBtn.addEventListener('click', () => {
+    container.scrollBy({ left: -scrollAmount, behavior: 'smooth' });
+  });
+
+  rightBtn.addEventListener('click', () => {
+    container.scrollBy({ left: scrollAmount, behavior: 'smooth' });
+  });
+
+  // Hide/show buttons based on scroll position
+  container.addEventListener('scroll', () => {
+    const maxScroll = list.scrollWidth - container.clientWidth;
+    leftBtn.style.opacity = container.scrollLeft > 10 ? '1' : '0.5';
+    rightBtn.style.opacity = container.scrollLeft < maxScroll - 10 ? '1' : '0.5';
+  });
+
+  // Initial button state
+  setTimeout(() => {
+    const maxScroll = list.scrollWidth - container.clientWidth;
+    leftBtn.style.opacity = '0.5';
+    rightBtn.style.opacity = maxScroll > 10 ? '1' : '0.5';
+  }, 100);
+}
+
 // ─── APP UPDATE ──────────────────────────────────────────────────────────────
 async function fetchAppUpdate() {
   try {
@@ -1405,6 +1511,7 @@ function init() {
   renderEpgTabs();
   renderChannelGrid();
   renderFaq();
+  initHorizontalChannelList(); // Initialize horizontal channel list
 
   // Defer non-critical tasks to requestIdleCallback for better performance
   if ('requestIdleCallback' in window) {
