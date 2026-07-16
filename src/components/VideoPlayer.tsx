@@ -109,58 +109,11 @@ export default function VideoPlayer({ channel, onRefresh }: VideoPlayerProps) {
       : channel.streamUrl;
 
     if (Hls.isSupported()) {
-      // World-class HLS configuration for zero buffering on low internet
       const hls = new Hls({
-        // Core performance settings
-        enableWorker: true,
+        enableWorker: false,
         lowLatencyMode: true,
-        backBufferLength: 30, // Reduced for faster startup
-        maxBufferLength: 60, // Optimal buffer for smooth playback
-        maxBufferSize: 15 * 1000 * 1000, // 15MB - reduced for low bandwidth
-        maxMaxBufferLength: 120,
-        
-        // Advanced Adaptive Bitrate (ABR) settings
-        abrEwmaFastLive: 3.0, // Fast adaptation to network changes
-        abrEwmaSlowLive: 9.0, // Stable quality selection
-        abrEwmaDefaultEstimate: 500000, // Start with 500kbps estimate
-        abrBandwidthFactor: 0.9, // Conservative bitrate selection
-        abrBandwidthUpFactor: 0.7, // Quick quality upgrades
-        abrBandwidthDownFactor: 0.5, // Fast quality downgrades
-        
-        // Low-latency streaming optimizations
-        liveSyncDuration: 3, // Target 3 seconds behind live
-        liveMaxLatencyDuration: 10, // Max 10 seconds latency
-        liveSyncDurationCount: 3,
-        maxLiveSyncPlaybackRate: 1.0, // No speedup to avoid jank
-        
-        // Fragment loading optimization
-        maxFragLookUpTolerance: 0.2, // Precise fragment selection
-        manifestLoadingTimeOut: 15000, // 15s timeout
-        manifestLoadingMaxRetry: 4,
-        levelLoadingTimeOut: 15000,
-        levelLoadingMaxRetry: 4,
-        fragLoadingTimeOut: 20000, // 20s fragment timeout
-        fragLoadingMaxRetry: 6, // More retries for poor connections
-        fragLoadingRetryDelay: 1000, // Quick retry
-        
-        // Buffer management for zero buffering
-        maxBufferHole: 0.5, // Fill small gaps
-        highBufferWatchdogPeriod: 2, // Monitor buffer frequently
-        
-        // Network optimization
-        fetchSetup: (context, initParams) => {
-          // Add connection keep-alive and compression
-          return {
-            ...initParams,
-            keepalive: true,
-            credentials: 'omit',
-          };
-        },
-        
-        // Progressive loading for instant start
-        startLevel: -1, // Auto-select starting quality
-        testBandwidth: true, // Test bandwidth before selection
-        startFragPrefetch: true, // Prefetch first fragment
+        backBufferLength: 90,
+        maxBufferSize: 30 * 1000 * 1000, // 30MB
       });
       hlsRef.current = hls;
 
@@ -168,24 +121,8 @@ export default function VideoPlayer({ channel, onRefresh }: VideoPlayerProps) {
       hls.attachMedia(video);
 
       hls.on(Hls.Events.MANIFEST_PARSED, () => {
-        setStatusMessage('Manifest decoded! Optimizing for your connection...');
+        setStatusMessage('Manifest decoded! Rendering HLS video buffer...');
         playVideo();
-      });
-
-      // Monitor level changes for adaptive quality
-      hls.on(Hls.Events.LEVEL_SWITCHED, (event, data) => {
-        const level = hls.levels[data.level];
-        if (level) {
-          const quality = level.height;
-          const bitrate = Math.round(level.bitrate / 1000);
-          console.log(`Quality switched to: ${quality}p @ ${bitrate}kbps`);
-          // Update UI if needed
-        }
-      });
-
-      // Monitor bandwidth changes
-      hls.on(Hls.Events.BUFFER_CODECS, (event, data) => {
-        console.log('Buffer codecs:', data);
       });
 
       hls.on(Hls.Events.FRAG_BUFFERED, (event, data) => {
@@ -198,18 +135,15 @@ export default function VideoPlayer({ channel, onRefresh }: VideoPlayerProps) {
       });
 
       let networkErrorRetryCount = 0;
-      let mediaErrorRecoveryCount = 0;
-      
       hls.on(Hls.Events.ERROR, (event, data) => {
         if (data.fatal) {
           console.error('Hls.js fatal error:', data);
           switch (data.type) {
             case Hls.ErrorTypes.NETWORK_ERROR:
-              if (networkErrorRetryCount < 5) { // Increased retries for poor connections
+              if (networkErrorRetryCount < 3) {
                 networkErrorRetryCount++;
-                const delay = Math.min(1000 * networkErrorRetryCount, 5000); // Progressive backoff
-                setStatusMessage(`Network error. Retrying in ${delay/1000}s (${networkErrorRetryCount}/5)...`);
-                setTimeout(() => hls.startLoad(), delay);
+                setStatusMessage(`Network error. Retrying connection (${networkErrorRetryCount}/3)...`);
+                hls.startLoad();
               } else if (useProxy) {
                 console.warn('Proxy request failed. Bypassing proxy and trying direct connection...');
                 setStatusMessage('Proxy failed (possibly blocked port). Trying direct stream...');
@@ -221,15 +155,8 @@ export default function VideoPlayer({ channel, onRefresh }: VideoPlayerProps) {
               }
               break;
             case Hls.ErrorTypes.MEDIA_ERROR:
-              if (mediaErrorRecoveryCount < 3) {
-                mediaErrorRecoveryCount++;
-                setStatusMessage('Media format warning. Retrying track synchronization...');
-                hls.recoverMediaError();
-              } else {
-                setPlaybackError('Media format incompatible or stream corrupted.');
-                setStreamActive(false);
-                setIsLoading(false);
-              }
+              setStatusMessage('Media format warning. Retrying track synchronization...');
+              hls.recoverMediaError();
               break;
             default:
               if (useProxy) {
@@ -243,18 +170,7 @@ export default function VideoPlayer({ channel, onRefresh }: VideoPlayerProps) {
               break;
           }
         } else {
-          // Non-fatal errors - adaptive quality handling
-          if (data.details === 'fragLoadError') {
-            console.warn('Fragment load error, HLS will retry with lower quality');
-          } else if (data.details === 'bufferStalledError') {
-            console.warn('Buffer stalled, HLS will recover');
-          } else if (data.details === 'bufferAppendError') {
-            console.warn('Buffer append error, HLS will handle');
-          } else if (data.details === 'manifestLoadError') {
-            console.warn('Manifest load error, HLS will retry');
-          } else {
-            console.warn('Hls.js non-fatal warning:', data.details || data.type);
-          }
+          console.warn('Hls.js non-fatal warning:', data.details || data.type);
         }
       });
     } else if (video.canPlayType('application/vnd.apple.mpegurl')) {
