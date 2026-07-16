@@ -1,5 +1,6 @@
 // Cloudflare Worker - HLS Stream Proxy
 // Deploy this to Cloudflare Workers for free, high-performance video streaming
+// Enhanced to handle token-based streams and preserve query parameters
 
 export default {
   async fetch(request, env, ctx) {
@@ -85,7 +86,7 @@ export default {
         contentType.includes('vnd.apple.mpegurl');
 
       if (isPlaylist) {
-        // Rewrite M3U8 playlist to proxy segment URLs
+        // Rewrite M3U8 playlist to proxy segment URLs while preserving tokens
         const body = await upstreamResponse.text();
         const rewritten = body.split(/\r?\n/).map(line => {
           const trimmed = line.trim();
@@ -108,6 +109,17 @@ export default {
           }
           
           // Rewrite segment URLs and child playlist URLs
+          // Skip if it's already a proxy URL or looks like a full URL
+          if (trimmed.startsWith('http://') || trimmed.startsWith('https://')) {
+            // It's already an absolute URL, proxy it
+            try {
+              return `${workerUrl}/?url=${encodeURIComponent(trimmed)}`;
+            } catch {
+              return line;
+            }
+          }
+          
+          // It's a relative URL, resolve it against the target URL
           try {
             const absoluteUrl = new URL(trimmed, targetUrl).href;
             return `${workerUrl}/?url=${encodeURIComponent(absoluteUrl)}`;

@@ -226,7 +226,7 @@ function loadChannel(channel) {
   const CLOUDFLARE_PAGES_PROXY = '/api/proxy?url=';
   const DENO_PROXY = 'https://snowy-perch-1699.shakilemon73.deno.net/?url=';
   const CLOUDFLARE_WORKER_URL = 'https://protvplus-proxy.shakilemon71.workers.dev/?url=';
-  const RELAY_PROXY = DENO_PROXY; // Temporarily using Deno proxy until Cloudflare Worker is redeployed
+  const RELAY_PROXY = CLOUDFLARE_WORKER_URL; // Using deployed Cloudflare Worker with token support
 
 function resolveSource(rawUrl) {
   const isHttps = location.protocol === 'https:';
