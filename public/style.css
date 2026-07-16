@@ -320,8 +320,9 @@ input, textarea { font-family: inherit; }
   max-width: 100%;
   overflow: hidden;
 }
-@media(min-width:768px){ .hero-grid { gap: 3rem; } }
-@media(min-width:1024px){ .hero-grid { grid-template-columns: 5fr 7fr; } }
+@media(min-width:768px){ .hero-grid { gap: 2.5rem; } }
+@media(min-width:1024px){ .hero-grid { grid-template-columns: 1fr 1.2fr; max-width: 1200px; margin: 0 auto; } }
+@media(min-width:1280px){ .hero-grid { grid-template-columns: 1fr 1.3fr; max-width: 1400px; } }
 
 .hero-content { display: flex; flex-direction: column; gap: 1.75rem; }
 .hero-badge {
@@ -392,6 +393,7 @@ input, textarea { font-family: inherit; }
   transform: translateZ(0); contain: layout style;
   max-width: 100%;
   overflow: hidden;
+  width: 100%;
 }
 .player-frame::before {
   content: ''; position: absolute; inset: -1px; border-radius: 23px;
@@ -423,9 +425,10 @@ input, textarea { font-family: inherit; }
   will-change: transform; transform: translateZ(0); cursor: pointer;
   width: 100%;
   max-width: 100%;
+  max-height: 500px;
 }
-@media(max-width:767px){ .player-viewport { border-radius: 10px; aspect-ratio: 16/9; } }
-@media(max-width:480px){ .player-viewport { border-radius: 8px; aspect-ratio: 16/9; } }
+@media(max-width:767px){ .player-viewport { border-radius: 10px; aspect-ratio: 16/9; max-height: 400px; } }
+@media(max-width:480px){ .player-viewport { border-radius: 8px; aspect-ratio: 16/9; max-height: 300px; } }
 .player-base {
   height: 6px; background: rgba(255,255,255,.04);
   border-radius: 0 0 8px 8px; margin: 0 18%;
