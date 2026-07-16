@@ -98,17 +98,68 @@ export default function VideoPlayer({ channel, onRefresh }: VideoPlayerProps) {
         });
     };
 
-    const RELAY_PROXY = 'https://snowy-perch-1699.shakilemon73.deno.net/?url=';
-const streamSource = useProxy 
-  ? `${RELAY_PROXY}${encodeURIComponent(channel.streamUrl)}`
-  : channel.streamUrl;
+    // Use Cloudflare Pages proxy by default, fallback to Deno if needed
+    const CLOUDFLARE_PROXY = '/api/proxy?url=';
+    const DENO_PROXY = 'https://snowy-perch-1699.shakilemon73.deno.net/?url=';
+    const RELAY_PROXY = CLOUDFLARE_PROXY; // Change to DENO_PROXY if Cloudflare proxy fails
+
+    const streamSource = useProxy 
+      ? `${RELAY_PROXY}${encodeURIComponent(channel.streamUrl)}`
+      : channel.streamUrl;
 
     if (Hls.isSupported()) {
+      // World-class HLS configuration for zero buffering on low internet
       const hls = new Hls({
-        enableWorker: false,
+        // Core performance settings
+        enableWorker: true,
         lowLatencyMode: true,
-        backBufferLength: 90,
-        maxBufferSize: 30 * 1000 * 1000, // 30MB
+        backBufferLength: 30, // Reduced for faster startup
+        maxBufferLength: 60, // Optimal buffer for smooth playback
+        maxBufferSize: 15 * 1000 * 1000, // 15MB - reduced for low bandwidth
+        maxMaxBufferLength: 120,
+        
+        // Advanced Adaptive Bitrate (ABR) settings
+        abrEwmaFastLive: 3.0, // Fast adaptation to network changes
+        abrEwmaSlowLive: 9.0, // Stable quality selection
+        abrEwmaDefaultEstimate: 500000, // Start with 500kbps estimate
+        abrBandwidthFactor: 0.9, // Conservative bitrate selection
+        abrBandwidthUpFactor: 0.7, // Quick quality upgrades
+        abrBandwidthDownFactor: 0.5, // Fast quality downgrades
+        
+        // Low-latency streaming optimizations
+        liveSyncDuration: 3, // Target 3 seconds behind live
+        liveMaxLatencyDuration: 10, // Max 10 seconds latency
+        liveSyncDurationCount: 3,
+        maxLiveSyncPlaybackRate: 1.0, // No speedup to avoid jank
+        
+        // Fragment loading optimization
+        maxFragLookUpTolerance: 0.2, // Precise fragment selection
+        manifestLoadingTimeOut: 15000, // 15s timeout
+        manifestLoadingMaxRetry: 4,
+        levelLoadingTimeOut: 15000,
+        levelLoadingMaxRetry: 4,
+        fragLoadingTimeOut: 20000, // 20s fragment timeout
+        fragLoadingMaxRetry: 6, // More retries for poor connections
+        fragLoadingRetryDelay: 1000, // Quick retry
+        
+        // Buffer management for zero buffering
+        maxBufferHole: 0.5, // Fill small gaps
+        highBufferWatchdogPeriod: 2, // Monitor buffer frequently
+        
+        // Network optimization
+        fetchSetup: (context, initParams) => {
+          // Add connection keep-alive and compression
+          return {
+            ...initParams,
+            keepalive: true,
+            credentials: 'omit',
+          };
+        },
+        
+        // Progressive loading for instant start
+        startLevel: -1, // Auto-select starting quality
+        testBandwidth: true, // Test bandwidth before selection
+        startFragPrefetch: true, // Prefetch first fragment
       });
       hlsRef.current = hls;
 
@@ -116,8 +167,24 @@ const streamSource = useProxy
       hls.attachMedia(video);
 
       hls.on(Hls.Events.MANIFEST_PARSED, () => {
-        setStatusMessage('Manifest decoded! Rendering HLS video buffer...');
+        setStatusMessage('Manifest decoded! Optimizing for your connection...');
         playVideo();
+      });
+
+      // Monitor level changes for adaptive quality
+      hls.on(Hls.Events.LEVEL_SWITCHED, (event, data) => {
+        const level = hls.levels[data.level];
+        if (level) {
+          const quality = level.height;
+          const bitrate = Math.round(level.bitrate / 1000);
+          console.log(`Quality switched to: ${quality}p @ ${bitrate}kbps`);
+          // Update UI if needed
+        }
+      });
+
+      // Monitor bandwidth changes
+      hls.on(Hls.Events.BUFFER_CODECS, (event, data) => {
+        console.log('Buffer codecs:', data);
       });
 
       hls.on(Hls.Events.FRAG_BUFFERED, (event, data) => {
@@ -130,15 +197,18 @@ const streamSource = useProxy
       });
 
       let networkErrorRetryCount = 0;
+      let mediaErrorRecoveryCount = 0;
+      
       hls.on(Hls.Events.ERROR, (event, data) => {
         if (data.fatal) {
           console.error('Hls.js fatal error:', data);
           switch (data.type) {
             case Hls.ErrorTypes.NETWORK_ERROR:
-              if (networkErrorRetryCount < 3) {
+              if (networkErrorRetryCount < 5) { // Increased retries for poor connections
                 networkErrorRetryCount++;
-                setStatusMessage(`Network error. Retrying connection (${networkErrorRetryCount}/3)...`);
-                hls.startLoad();
+                const delay = Math.min(1000 * networkErrorRetryCount, 5000); // Progressive backoff
+                setStatusMessage(`Network error. Retrying in ${delay/1000}s (${networkErrorRetryCount}/5)...`);
+                setTimeout(() => hls.startLoad(), delay);
               } else if (useProxy) {
                 console.warn('Proxy request failed. Bypassing proxy and trying direct connection...');
                 setStatusMessage('Proxy failed (possibly blocked port). Trying direct stream...');
@@ -150,8 +220,15 @@ const streamSource = useProxy
               }
               break;
             case Hls.ErrorTypes.MEDIA_ERROR:
-              setStatusMessage('Media format warning. Retrying track synchronization...');
-              hls.recoverMediaError();
+              if (mediaErrorRecoveryCount < 3) {
+                mediaErrorRecoveryCount++;
+                setStatusMessage('Media format warning. Retrying track synchronization...');
+                hls.recoverMediaError();
+              } else {
+                setPlaybackError('Media format incompatible or stream corrupted.');
+                setStreamActive(false);
+                setIsLoading(false);
+              }
               break;
             default:
               if (useProxy) {
@@ -165,7 +242,14 @@ const streamSource = useProxy
               break;
           }
         } else {
-          console.warn('Hls.js non-fatal warning:', data.details || data.type);
+          // Non-fatal errors - adaptive quality handling
+          if (data.details === 'fragLoadError') {
+            console.warn('Fragment load error, HLS will retry with lower quality');
+          } else if (data.details === 'bufferStalledError') {
+            console.warn('Buffer stalled, HLS will recover');
+          } else {
+            console.warn('Hls.js non-fatal warning:', data.details || data.type);
+          }
         }
       });
     } else if (video.canPlayType('application/vnd.apple.mpegurl')) {

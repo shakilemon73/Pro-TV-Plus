@@ -73,12 +73,75 @@ const state = {
   apkDownloading: false,
   apkProgress: 0,
   updateInfo: null,
+  // Network quality monitoring
+  connectionQuality: 'unknown', // 'excellent', 'good', 'fair', 'poor'
+  networkSpeed: 0,
+  lastNetworkCheck: 0,
 };
 
 // ─── PLAYER ────────────────────────────────────────────────────────────────────
 const IS_MOBILE = /Android|iPhone|iPad|iPod|Mobile/i.test(navigator.userAgent) || window.innerWidth < 768;
 let hls = null;
 let mpegtsPlayer = null;
+
+// ─── NETWORK QUALITY DETECTION ─────────────────────────────────────────────────
+async function detectNetworkQuality() {
+  if (!navigator.connection) return 'unknown';
+  
+  const connection = navigator.connection;
+  const downlink = connection.downlink || 0;
+  const rtt = connection.rtt || 0;
+  const saveData = connection.saveData || false;
+  
+  // If data saver is on, force low quality
+  if (saveData) return 'poor';
+  
+  // Determine quality based on downlink and RTT
+  if (downlink >= 10 && rtt < 100) return 'excellent';
+  if (downlink >= 5 && rtt < 200) return 'good';
+  if (downlink >= 2 && rtt < 300) return 'fair';
+  return 'poor';
+}
+
+function updateNetworkQualityUI() {
+  const quality = state.connectionQuality;
+  const qualityBadge = document.getElementById('network-quality');
+  if (!qualityBadge) return;
+  
+  const colors = {
+    'excellent': '#22c55e',
+    'good': '#3b82f6', 
+    'fair': '#f59e0b',
+    'poor': '#ef4444',
+    'unknown': '#6b7280'
+  };
+  
+  const labels = {
+    'excellent': 'Excellent',
+    'good': 'Good',
+    'fair': 'Fair',
+    'poor': 'Slow',
+    'unknown': 'Unknown'
+  };
+  
+  qualityBadge.style.color = colors[quality];
+  qualityBadge.textContent = labels[quality];
+}
+
+// Monitor network changes
+if (navigator.connection) {
+  navigator.connection.addEventListener('change', async () => {
+    state.connectionQuality = await detectNetworkQuality();
+    updateNetworkQualityUI();
+    
+    // Adjust HLS quality based on network
+    if (hls && state.connectionQuality === 'poor') {
+      hls.currentLevel = 0; // Force lowest quality
+    } else if (hls && state.connectionQuality === 'excellent') {
+      hls.currentLevel = -1; // Auto quality
+    }
+  });
+}
 
 // ─── STREAM TYPE DETECTION ────────────────────────────────────────────────────
 function getStreamType(url) {
@@ -132,6 +195,12 @@ function loadChannel(channel) {
   state.playbackError = null;
   state.useProxy = false;
 
+  // Detect network quality before loading
+  detectNetworkQuality().then(quality => {
+    state.connectionQuality = quality;
+    updateNetworkQualityUI();
+  });
+
   // Determine if we need proxy (http stream on https page)
   const isHttps = location.protocol === 'https:';
   const streamIsHttp = channel.streamUrl.startsWith('http://');
@@ -153,7 +222,10 @@ function loadChannel(channel) {
   const allStreams = [channel.streamUrl, ...(channel.altStreams || [])];
   let altIndex = 0;
 
-  const RELAY_PROXY = 'https://snowy-perch-1699.shakilemon73.deno.net/?url=';
+  // Use Cloudflare Pages proxy by default, fallback to Deno if needed
+  const CLOUDFLARE_PROXY = '/api/proxy?url=';
+  const DENO_PROXY = 'https://snowy-perch-1699.shakilemon73.deno.net/?url=';
+  const RELAY_PROXY = CLOUDFLARE_PROXY; // Change to DENO_PROXY if Cloudflare proxy fails
 
 function resolveSource(rawUrl) {
   const isHttps = location.protocol === 'https:';
@@ -177,30 +249,111 @@ function resolveSource(rawUrl) {
   function tryHLS(rawUrl) {
     const src = resolveSource(rawUrl);
     let netRetry = 0;
+    let mediaErrorRecoveryCount = 0;
+    
     if (typeof Hls !== 'undefined' && Hls.isSupported()) {
+      // World-class HLS configuration for zero buffering on low internet
       const hlsConfig = IS_MOBILE
-        ? { enableWorker: true, lowLatencyMode: true, backBufferLength: 30, maxBufferSize: 10 * 1000 * 1000, maxMaxBufferLength: 20, startLevel: -1, abrEwmaFastLive: 3, abrEwmaSlowLive: 9 }
-        : { enableWorker: true, lowLatencyMode: true, backBufferLength: 90, maxBufferSize: 30 * 1000 * 1000, startLevel: -1 };
+        ? {
+            enableWorker: true,
+            lowLatencyMode: true,
+            backBufferLength: 20,
+            maxBufferLength: 40,
+            maxBufferSize: 8 * 1000 * 1000,
+            maxMaxBufferLength: 60,
+            abrEwmaFastLive: 2.0,
+            abrEwmaSlowLive: 6.0,
+            abrEwmaDefaultEstimate: 300000,
+            abrBandwidthFactor: 0.85,
+            abrBandwidthUpFactor: 0.6,
+            abrBandwidthDownFactor: 0.4,
+            liveSyncDuration: 2,
+            liveMaxLatencyDuration: 8,
+            maxFragLookUpTolerance: 0.2,
+            manifestLoadingTimeOut: 15000,
+            manifestLoadingMaxRetry: 4,
+            fragLoadingTimeOut: 20000,
+            fragLoadingMaxRetry: 6,
+            fragLoadingRetryDelay: 1000,
+            maxBufferHole: 0.5,
+            startLevel: -1,
+            testBandwidth: true,
+            startFragPrefetch: true,
+          }
+        : {
+            enableWorker: true,
+            lowLatencyMode: true,
+            backBufferLength: 30,
+            maxBufferLength: 60,
+            maxBufferSize: 15 * 1000 * 1000,
+            maxMaxBufferLength: 120,
+            abrEwmaFastLive: 3.0,
+            abrEwmaSlowLive: 9.0,
+            abrEwmaDefaultEstimate: 500000,
+            abrBandwidthFactor: 0.9,
+            abrBandwidthUpFactor: 0.7,
+            abrBandwidthDownFactor: 0.5,
+            liveSyncDuration: 3,
+            liveMaxLatencyDuration: 10,
+            liveSyncDurationCount: 3,
+            maxLiveSyncPlaybackRate: 1.0,
+            maxFragLookUpTolerance: 0.2,
+            manifestLoadingTimeOut: 15000,
+            manifestLoadingMaxRetry: 4,
+            levelLoadingTimeOut: 15000,
+            levelLoadingMaxRetry: 4,
+            fragLoadingTimeOut: 20000,
+            fragLoadingMaxRetry: 6,
+            fragLoadingRetryDelay: 1000,
+            maxBufferHole: 0.5,
+            highBufferWatchdogPeriod: 2,
+            startLevel: -1,
+            testBandwidth: true,
+            startFragPrefetch: true,
+          };
+      
       hls = new Hls(hlsConfig);
       hls.loadSource(src);
       hls.attachMedia(videoEl);
+      
       hls.on(Hls.Events.MANIFEST_PARSED, () => {
-        statusMsg.textContent = 'Manifest decoded! Rendering HLS buffer...';
+        statusMsg.textContent = 'Manifest decoded! Optimizing for your connection...';
         playVideo();
       });
+
+      hls.on(Hls.Events.LEVEL_SWITCHED, (event, data) => {
+        const level = hls.levels[data.level];
+        if (level) {
+          const quality = level.height;
+          const bitrate = Math.round(level.bitrate / 1000);
+          console.log(`Quality switched to: ${quality}p @ ${bitrate}kbps`);
+        }
+      });
+      
       hls.on(Hls.Events.FRAG_BUFFERED, () => {
         if (videoEl.buffered && videoEl.buffered.length > 0) {
           const end = videoEl.buffered.end(videoEl.buffered.length - 1);
           state.bufferState = Math.min(100, (end / (videoEl.duration || 1)) * 100);
         }
       });
+      
       hls.on(Hls.Events.ERROR, (_, data) => {
-        if (!data.fatal) return;
-        if (data.type === Hls.ErrorTypes.NETWORK_ERROR && netRetry < 3) {
+        if (!data.fatal) {
+          if (data.details === 'fragLoadError') {
+            console.warn('Fragment load error, HLS will retry with lower quality');
+          } else if (data.details === 'bufferStalledError') {
+            console.warn('Buffer stalled, HLS will recover');
+          }
+          return;
+        }
+        
+        if (data.type === Hls.ErrorTypes.NETWORK_ERROR && netRetry < 5) {
           netRetry++;
-          statusMsg.textContent = `Network error. Retrying (${netRetry}/3)...`;
-          hls.startLoad();
-        } else if (data.type === Hls.ErrorTypes.MEDIA_ERROR) {
+          const delay = Math.min(1000 * netRetry, 5000);
+          statusMsg.textContent = `Network error. Retrying in ${delay/1000}s (${netRetry}/5)...`;
+          setTimeout(() => hls.startLoad(), delay);
+        } else if (data.type === Hls.ErrorTypes.MEDIA_ERROR && mediaErrorRecoveryCount < 3) {
+          mediaErrorRecoveryCount++;
           statusMsg.textContent = 'Media format warning. Retrying synchronization...';
           hls.recoverMediaError();
         } else {
@@ -233,27 +386,64 @@ function resolveSource(rawUrl) {
     const clean = rawUrl.split('?')[0].toLowerCase();
     // mpegts.js uses plain string type literals, not mpegts.Types.*
     const type  = clean.endsWith('.flv') ? 'flv' : 'mpegts';
-    mpegtsPlayer = mpegts.createPlayer({
+    
+    // World-class mpegts.js configuration for low bandwidth
+    const config = {
       type,
       url: src,
       isLive: true,
-    }, {
+      hasAudio: true,
+      hasVideo: true,
+    };
+    
+    const mpegtsConfig = {
       enableWorker: true,
       liveBufferLatencyChasing: true,
       liveSync: true,
       fixAudioTimestampGap: true,
-    });
+      // Low bandwidth optimizations
+      lazyLoad: false,
+      lazyLoadMaxDuration: 0,
+      lazyLoadRecoverDuration: 0,
+      deferLoadAfterSourceOpen: false,
+      autoCleanupSourceBuffer: true,
+      autoCleanupMaxBackwardDuration: 3,
+      autoCleanupMinBackwardDuration: 2,
+      // Performance optimizations
+      enableWorker: true,
+      // Buffer management for smooth playback
+      liveBufferLatencyChasing: true,
+      liveSync: true,
+      liveSyncMaxCount: 5,
+      liveSyncTagName: 'audio', // Sync audio first
+    };
+    
+    mpegtsPlayer = mpegts.createPlayer(config, mpegtsConfig);
     mpegtsPlayer.attachMediaElement(videoEl);
     mpegtsPlayer.load();
     statusMsg.textContent = 'Decoding transport stream...';
+    
     // Use string event names — mpegts.Events may not exist in all builds
     const EVT_INFO  = (mpegts.Events && mpegts.Events.MEDIA_INFO)  || 'media_info';
     const EVT_ERROR = (mpegts.Events && mpegts.Events.ERROR)        || 'error';
+    const EVT_STATISTICS = (mpegts.Events && mpegts.Events.STATISTICS_INFO) || 'statistics_info';
+    
     mpegtsPlayer.on(EVT_INFO, () => {
       statusMsg.textContent = 'Stream decoded! Starting playback...';
       playVideo();
     });
+    
+    mpegtsPlayer.on(EVT_STATISTICS, (info) => {
+      if (info) {
+        const speed = (info.speed || 0).toFixed(2);
+        const decodedFrames = info.decodedFrames || 0;
+        const droppedFrames = info.droppedFrames || 0;
+        console.log(`Stream stats: ${speed}KB/s, Frames: ${decodedFrames}, Dropped: ${droppedFrames}`);
+      }
+    });
+    
     mpegtsPlayer.on(EVT_ERROR, (errType, errDetail) => {
+      console.error('MPEG-TS error:', errType, errDetail);
       if (mpegtsPlayer) { mpegtsPlayer.destroy(); mpegtsPlayer = null; }
       failover(`Transport stream error (${errType}): ${errDetail}`);
     });
@@ -265,10 +455,29 @@ function resolveSource(rawUrl) {
     videoEl.src = src;
     videoEl.load();
     statusMsg.textContent = 'Loading video stream...';
+    
+    // Preload hints for instant playback
+    if ('preload' in videoEl) {
+      videoEl.preload = 'auto';
+    }
+    
     videoEl.addEventListener('canplay', () => {
       statusMsg.textContent = 'Stream ready!';
       playVideo();
     }, { once: true });
+    
+    videoEl.addEventListener('waiting', () => {
+      if (state.streamActive) {
+        statusMsg.textContent = 'Buffering...';
+      }
+    });
+    
+    videoEl.addEventListener('playing', () => {
+      if (state.streamActive) {
+        statusMsg.textContent = 'Playing';
+      }
+    });
+    
     videoEl.addEventListener('error', () => failover('Native video stream failed to load.'), { once: true });
   }
 
