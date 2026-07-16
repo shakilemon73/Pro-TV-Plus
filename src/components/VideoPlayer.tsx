@@ -248,6 +248,10 @@ export default function VideoPlayer({ channel, onRefresh }: VideoPlayerProps) {
             console.warn('Fragment load error, HLS will retry with lower quality');
           } else if (data.details === 'bufferStalledError') {
             console.warn('Buffer stalled, HLS will recover');
+          } else if (data.details === 'bufferAppendError') {
+            console.warn('Buffer append error, HLS will handle');
+          } else if (data.details === 'manifestLoadError') {
+            console.warn('Manifest load error, HLS will retry');
           } else {
             console.warn('Hls.js non-fatal warning:', data.details || data.type);
           }

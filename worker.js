@@ -16,6 +16,7 @@ export default {
     }
 
     const url = new URL(request.url);
+    const workerUrl = `${url.protocol}//${url.host}`;
     const targetUrl = url.searchParams.get('url');
 
     if (!targetUrl) {
@@ -97,7 +98,7 @@ export default {
               return trimmed.replace(/URI="([^"]+)"/g, (_, uri) => {
                 try {
                   const absoluteUrl = new URL(uri, targetUrl).href;
-                  return `URI="/?url=${encodeURIComponent(absoluteUrl)}"`;
+                  return `URI="${workerUrl}/?url=${encodeURIComponent(absoluteUrl)}"`;
                 } catch {
                   return `URI="${uri}"`;
                 }
@@ -109,7 +110,7 @@ export default {
           // Rewrite segment URLs and child playlist URLs
           try {
             const absoluteUrl = new URL(trimmed, targetUrl).href;
-            return `/?url=${encodeURIComponent(absoluteUrl)}`;
+            return `${workerUrl}/?url=${encodeURIComponent(absoluteUrl)}`;
           } catch {
             return line;
           }
@@ -126,18 +127,38 @@ export default {
         });
       }
 
-      // Stream through binary data (TS segments, etc.)
+      // Stream through binary data (TS segments, FLV, native video, etc.)
       const responseHeaders = new Headers();
       responseHeaders.set('Access-Control-Allow-Origin', '*');
       responseHeaders.set('Access-Control-Allow-Methods', 'GET, HEAD, OPTIONS');
       responseHeaders.set('Access-Control-Allow-Headers', '*');
+      responseHeaders.set('Access-Control-Expose-Headers', 'Content-Length, Content-Type');
       
+      // Set appropriate content type based on file extension or upstream header
       if (contentType) {
         responseHeaders.set('Content-Type', contentType);
       } else if (targetUrl.includes('.ts')) {
         responseHeaders.set('Content-Type', 'video/mp2t');
+      } else if (targetUrl.includes('.flv')) {
+        responseHeaders.set('Content-Type', 'video/x-flv');
       } else if (targetUrl.includes('.m4s')) {
         responseHeaders.set('Content-Type', 'video/mp4');
+      } else if (targetUrl.includes('.mp4')) {
+        responseHeaders.set('Content-Type', 'video/mp4');
+      } else if (targetUrl.includes('.webm')) {
+        responseHeaders.set('Content-Type', 'video/webm');
+      } else if (targetUrl.includes('.mkv')) {
+        responseHeaders.set('Content-Type', 'video/x-matroska');
+      } else if (targetUrl.includes('.avi')) {
+        responseHeaders.set('Content-Type', 'video/x-msvideo');
+      } else {
+        responseHeaders.set('Content-Type', 'application/octet-stream');
+      }
+
+      // Copy important headers from upstream
+      const contentLength = upstreamResponse.headers.get('content-length');
+      if (contentLength) {
+        responseHeaders.set('Content-Length', contentLength);
       }
 
       const cacheControl = upstreamResponse.headers.get('cache-control');

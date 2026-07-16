@@ -344,6 +344,12 @@ function resolveSource(rawUrl) {
             console.warn('Fragment load error, HLS will retry with lower quality');
           } else if (data.details === 'bufferStalledError') {
             console.warn('Buffer stalled, HLS will recover');
+          } else if (data.details === 'bufferAppendError') {
+            console.warn('Buffer append error, HLS will handle');
+          } else if (data.details === 'manifestLoadError') {
+            console.warn('Manifest load error, HLS will retry');
+          } else {
+            console.warn('Hls.js non-fatal warning:', data.details || data.type);
           }
           return;
         }
@@ -358,6 +364,7 @@ function resolveSource(rawUrl) {
           statusMsg.textContent = 'Media format warning. Retrying synchronization...';
           hls.recoverMediaError();
         } else {
+          console.error('HLS fatal error:', data);
           hls.destroy(); hls = null;
           failover('HLS stream failed — server may be offline or geo-blocked.');
         }
@@ -445,8 +452,10 @@ function resolveSource(rawUrl) {
     
     mpegtsPlayer.on(EVT_ERROR, (errType, errDetail) => {
       console.error('MPEG-TS error:', errType, errDetail);
+      // Try native playback as fallback
       if (mpegtsPlayer) { mpegtsPlayer.destroy(); mpegtsPlayer = null; }
-      failover(`Transport stream error (${errType}): ${errDetail}`);
+      statusMsg.textContent = 'MPEG-TS decoder failed, trying native playback...';
+      tryNative(rawUrl);
     });
   }
 
@@ -461,6 +470,8 @@ function resolveSource(rawUrl) {
     if ('preload' in videoEl) {
       videoEl.preload = 'auto';
     }
+    
+    let nativeErrorCount = 0;
     
     videoEl.addEventListener('canplay', () => {
       statusMsg.textContent = 'Stream ready!';
@@ -479,7 +490,23 @@ function resolveSource(rawUrl) {
       }
     });
     
-    videoEl.addEventListener('error', () => failover('Native video stream failed to load.'), { once: true });
+    videoEl.addEventListener('error', (e) => {
+      nativeErrorCount++;
+      console.error('Native video error:', e, videoEl.error);
+      
+      if (nativeErrorCount < 2) {
+        // Try once more with direct URL (no proxy)
+        if (src.includes('workers.dev') || src.includes('deno.net')) {
+          statusMsg.textContent = 'Proxy failed, trying direct connection...';
+          videoEl.src = rawUrl;
+          videoEl.load();
+        } else {
+          failover('Native video stream failed to load.');
+        }
+      } else {
+        failover('Native video stream failed to load.');
+      }
+    }, { once: true });
   }
 
   // ── Router ───────────────────────────────────────────────────────────────────
