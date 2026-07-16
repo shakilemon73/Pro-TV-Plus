@@ -98,10 +98,11 @@ export default function VideoPlayer({ channel, onRefresh }: VideoPlayerProps) {
         });
     };
 
-    // Use Cloudflare Pages proxy by default, fallback to Deno if needed
-    const CLOUDFLARE_PROXY = '/api/proxy?url=';
+    // Proxy configuration - Cloudflare Worker deployed
+    const CLOUDFLARE_PAGES_PROXY = '/api/proxy?url=';
     const DENO_PROXY = 'https://snowy-perch-1699.shakilemon73.deno.net/?url=';
-    const RELAY_PROXY = CLOUDFLARE_PROXY; // Change to DENO_PROXY if Cloudflare proxy fails
+    const CLOUDFLARE_WORKER_URL = 'https://protvplus-proxy.shakilemon71.workers.dev/?url=';
+    const RELAY_PROXY = CLOUDFLARE_WORKER_URL; // Using deployed Cloudflare Worker
 
     const streamSource = useProxy 
       ? `${RELAY_PROXY}${encodeURIComponent(channel.streamUrl)}`
