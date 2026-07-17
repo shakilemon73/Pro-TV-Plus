@@ -8,7 +8,7 @@ const FALLBACK = {
   versionCode: 100,
   versionName: '1.0.0',
   apkUrl:
-    'https://www.dropbox.com/scl/fi/y0rgfej2zu7dxtsp327oz/ProPlusTV.apk?rlkey=j4zb93tz1euyesqep4vxnbric&st=esvwmbwu&dl=1',
+    'https://www.dropbox.com/scl/fi/lcjf06lcq03dlbvnrl4jl/Pro-TV-Plus.apk?rlkey=6nip42uztf7k9r119hbho4opr&st=1ml1uoyu&dl=0',
   changelog: '• Performance improvements\n• Stability fixes',
 };
 

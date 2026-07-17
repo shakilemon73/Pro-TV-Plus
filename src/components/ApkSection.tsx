@@ -163,7 +163,7 @@ export default function ApkSection({ onDownloadTrigger }: { onDownloadTrigger?: 
               </p>
               <div className="flex flex-wrap gap-3">
                 <a
-                  href="https://www.dropbox.com/scl/fi/y0rgfej2zu7dxtsp327oz/ProPlusTV.apk?rlkey=j4zb93tz1euyesqep4vxnbric&st=esvwmbwu&dl=1"
+                  href="https://www.dropbox.com/scl/fi/lcjf06lcq03dlbvnrl4jl/Pro-TV-Plus.apk?rlkey=6nip42uztf7k9r119hbho4opr&st=1ml1uoyu&dl=0"
                   target="_blank"
                   rel="noopener noreferrer"
                   className="px-4 py-2.5 rounded-lg bg-[#007ee5]/10 hover:bg-[#007ee5]/20 border border-[#007ee5]/20 text-[#007ee5] hover:text-blue-400 font-bold text-xs transition-all flex items-center gap-2 cursor-pointer"
