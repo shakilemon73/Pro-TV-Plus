@@ -108,7 +108,7 @@ async function startServer() {
   });
 
   // APK download — redirect directly to Dropbox
-  const DROPBOX_APK = 'https://www.dropbox.com/scl/fi/lcjf06lcq03dlbvnrl4jl/Pro-TV-Plus.apk?rlkey=6nip42uztf7k9r119hbho4opr&st=1ml1uoyu&dl=0';
+  const DROPBOX_APK = 'https://www.dropbox.com/scl/fi/lcjf06lcq03dlbvnrl4jl/Pro-TV-Plus.apk?rlkey=6nip42uztf7k9r119hbho4opr&st=1ml1uoyu&dl=1';
   app.get('/api/download-apk', (req, res) => {
     res.redirect(302, DROPBOX_APK);
   });
